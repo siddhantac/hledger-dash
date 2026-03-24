@@ -30,8 +30,8 @@ async def reports(
         tab = "income"
 
     error = None
-    income_statement = ""
-    balance_sheet = ""
+    income_statement: dict = {}
+    balance_sheet: dict = {}
 
     try:
         income_statement = hl.get_income_statement(df, dt, period_type)

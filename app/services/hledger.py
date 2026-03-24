@@ -160,21 +160,56 @@ def get_summary(date_from: str, date_to: str) -> dict:
     return {"income": income, "expenses": expenses, "net": income - expenses}
 
 
-def get_income_statement(date_from: str, date_to: str, period_type: str = "monthly") -> str:
-    """Return raw hledger incomestatement output. period_type: monthly, quarterly, yearly."""
-    return run_hledger(
+def _parse_report_csv(output: str) -> dict:
+    """
+    Parse hledger report CSV into structured data for table rendering.
+    Returns {title, columns, rows} where each row has:
+      account, amounts[], is_section, is_total, depth
+    """
+    lines = list(csv.reader(io.StringIO(output)))
+    if len(lines) < 2:
+        return {"title": "", "columns": [], "rows": []}
+
+    title = lines[0][0] if lines[0] else ""
+    columns = lines[1] if len(lines) > 1 else []
+
+    rows = []
+    for line in lines[2:]:
+        if not line:
+            continue
+        account = line[0]
+        amounts = line[1:]
+        is_section = all(a == "" for a in amounts)
+        is_total = account.lower() == "total"
+        depth = account.count(":") if not is_section and not is_total else 0
+        rows.append({
+            "account": account,
+            "amounts": amounts,
+            "is_section": is_section,
+            "is_total": is_total,
+            "depth": depth,
+        })
+
+    return {"title": title, "columns": columns, "rows": rows}
+
+
+def get_income_statement(date_from: str, date_to: str, period_type: str = "monthly") -> dict:
+    """Return parsed incomestatement as table data. period_type: monthly, quarterly, yearly."""
+    output = run_hledger(
         "incomestatement",
         "--period", _period_arg(date_from, date_to),
         f"--{period_type}",
-        "--pretty",
+        "--output-format", "csv",
     )
+    return _parse_report_csv(output)
 
 
-def get_balance_sheet(date_from: str, date_to: str, period_type: str = "monthly") -> str:
-    """Return raw hledger balancesheet output. period_type: monthly, quarterly, yearly."""
-    return run_hledger(
+def get_balance_sheet(date_from: str, date_to: str, period_type: str = "monthly") -> dict:
+    """Return parsed balancesheet as table data. period_type: monthly, quarterly, yearly."""
+    output = run_hledger(
         "balancesheet",
         "--period", _period_arg(date_from, date_to),
         f"--{period_type}",
-        "--pretty",
+        "--output-format", "csv",
     )
+    return _parse_report_csv(output)
