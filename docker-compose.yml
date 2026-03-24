@@ -1,0 +1,14 @@
+services:
+  hledger-dash:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ${JOURNAL_DIR}:/journals:ro
+    environment:
+      - HLEDGER_FILE=/journals/${JOURNAL_FILE:-main.journal}
+    restart: unless-stopped
+    develop:
+      watch:
+        - action: rebuild
+          path: .

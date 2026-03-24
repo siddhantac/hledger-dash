@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-950">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}hledger-dash{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gray: {
+              950: '#0a0a0f',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="h-full text-gray-100 dark">
+
+<div class="flex h-full min-h-screen">
+  <!-- Sidebar -->
+  <aside class="w-56 bg-gray-900 border-r border-gray-800 flex flex-col py-6 px-4 shrink-0">
+    <div class="mb-8">
+      <span class="text-xl font-bold text-white">hledger</span>
+      <span class="text-xl font-bold text-indigo-400">dash</span>
+    </div>
+    <nav class="flex flex-col gap-1">
+      <a href="/?date_from={{ date_from }}&date_to={{ date_to }}"
+         class="px-3 py-2 rounded-lg text-sm font-medium {% if active == 'dashboard' %}bg-indigo-600 text-white{% else %}text-gray-400 hover:bg-gray-800 hover:text-white{% endif %}">
+        Dashboard
+      </a>
+      <a href="/expenses?date_from={{ date_from }}&date_to={{ date_to }}"
+         class="px-3 py-2 rounded-lg text-sm font-medium {% if active == 'expenses' %}bg-indigo-600 text-white{% else %}text-gray-400 hover:bg-gray-800 hover:text-white{% endif %}">
+        Expenses
+      </a>
+      <a href="/income?date_from={{ date_from }}&date_to={{ date_to }}"
+         class="px-3 py-2 rounded-lg text-sm font-medium {% if active == 'income' %}bg-indigo-600 text-white{% else %}text-gray-400 hover:bg-gray-800 hover:text-white{% endif %}">
+        Income
+      </a>
+      <a href="/reports?date_from={{ date_from }}&date_to={{ date_to }}"
+         class="px-3 py-2 rounded-lg text-sm font-medium {% if active == 'reports' %}bg-indigo-600 text-white{% else %}text-gray-400 hover:bg-gray-800 hover:text-white{% endif %}">
+        Reports
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main content -->
+  <div class="flex-1 flex flex-col overflow-auto">
+    <!-- Top bar with filter -->
+    <header class="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center justify-between">
+      <h1 class="text-lg font-semibold text-white">{% block heading %}{% endblock %}</h1>
+      <form method="GET" class="flex items-center gap-2">
+        <span class="text-xs text-gray-500">From</span>
+        <input type="month" name="date_from" value="{{ date_from }}"
+               class="bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+        <span class="text-xs text-gray-500">To</span>
+        <input type="month" name="date_to" value="{{ date_to }}"
+               class="bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+        <button type="submit"
+                class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg">
+          Apply
+        </button>
+      </form>
+    </header>
+
+    <main class="flex-1 p-6">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Expenses — hledger-dash{% endblock %}
+{% block heading %}Expenses{% endblock %}
+
+{% block content %}
+{% if error %}
+<div class="mb-6 rounded-lg bg-red-900/40 border border-red-700 px-4 py-3 text-sm text-red-300">
+  <strong>Error:</strong> {{ error }}
+</div>
+{% endif %}
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+  <!-- Pie chart -->
+  <div class="bg-gray-900 rounded-xl border border-gray-800 p-5">
+    <h2 class="text-sm font-semibold text-gray-300 mb-4">Spending by Category</h2>
+    {% if breakdown %}
+    <div class="relative h-72">
+      <canvas id="expensePieChart"></canvas>
+    </div>
+    {% else %}
+    <p class="text-gray-500 text-sm">No expense data for this period.</p>
+    {% endif %}
+  </div>
+
+  <!-- Top expenses table -->
+  <div class="bg-gray-900 rounded-xl border border-gray-800 p-5">
+    <h2 class="text-sm font-semibold text-gray-300 mb-4">Top Expenses</h2>
+    {% if breakdown %}
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-gray-500 text-xs uppercase border-b border-gray-800">
+          <th class="text-left pb-2">Category</th>
+          <th class="text-right pb-2">Amount</th>
+          <th class="text-right pb-2">Share</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set total = breakdown | sum(attribute='amount') %}
+        {% for row in breakdown %}
+        <tr class="border-b border-gray-800/50 hover:bg-gray-800/30">
+          <td class="py-2 text-gray-300">{{ row.account }}</td>
+          <td class="py-2 text-right text-rose-400 font-mono">{{ "%.2f"|format(row.amount) }}</td>
+          <td class="py-2 text-right text-gray-500">
+            {% if total > 0 %}{{ "%.0f"|format(row.amount / total * 100) }}%{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        <tr>
+          <td class="pt-3 font-semibold text-gray-200">Total</td>
+          <td class="pt-3 text-right font-semibold text-rose-300 font-mono">{{ "%.2f"|format(total) }}</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-gray-500 text-sm">No expense data for this period.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if breakdown %}
+<script>
+  pieChart('expensePieChart',
+    {{ chart_labels | tojson }},
+    {{ chart_amounts | tojson }}
+  );
+</script>
+{% endif %}
+{% endblock %}

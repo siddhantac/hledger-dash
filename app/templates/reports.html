@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Reports — hledger-dash{% endblock %}
+{% block heading %}Reports{% endblock %}
+
+{% block content %}
+{% if error %}
+<div class="mb-6 rounded-lg bg-red-900/40 border border-red-700 px-4 py-3 text-sm text-red-300">
+  <strong>Error:</strong> {{ error }}
+</div>
+{% endif %}
+
+<!-- Sub-tabs + period selector -->
+<div class="flex items-center justify-between mb-5">
+  <!-- Tabs -->
+  <div class="flex gap-1 bg-gray-900 border border-gray-800 rounded-lg p-1">
+    <button id="tab-btn-income" onclick="switchTab('income')"
+            class="px-4 py-1.5 rounded-md text-sm font-medium transition-colors">
+      Income Statement
+    </button>
+    <button id="tab-btn-balance" onclick="switchTab('balance')"
+            class="px-4 py-1.5 rounded-md text-sm font-medium transition-colors">
+      Balance Sheet
+    </button>
+  </div>
+
+  <!-- Period type selector -->
+  <form method="GET" id="period-form">
+    <input type="hidden" name="date_from" value="{{ date_from }}" />
+    <input type="hidden" name="date_to" value="{{ date_to }}" />
+    <input type="hidden" name="tab" id="form-tab" value="{{ tab }}" />
+    <div class="flex gap-1 bg-gray-900 border border-gray-800 rounded-lg p-1">
+      {% for pt, label in [('monthly', 'Monthly'), ('quarterly', 'Quarterly'), ('yearly', 'Yearly')] %}
+      <button type="submit" name="period_type" value="{{ pt }}"
+              class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors
+                     {% if period_type == pt %}bg-indigo-600 text-white{% else %}text-gray-400 hover:bg-gray-800 hover:text-white{% endif %}">
+        {{ label }}
+      </button>
+      {% endfor %}
+    </div>
+  </form>
+</div>
+
+<!-- Income Statement panel -->
+<div id="panel-income" class="bg-gray-900 rounded-xl border border-gray-800 p-5">
+  {% if income_statement %}
+  <pre class="text-xs text-gray-300 font-mono overflow-x-auto whitespace-pre leading-5">{{ income_statement }}</pre>
+  {% else %}
+  <p class="text-gray-500 text-sm">No data for this period.</p>
+  {% endif %}
+</div>
+
+<!-- Balance Sheet panel -->
+<div id="panel-balance" class="bg-gray-900 rounded-xl border border-gray-800 p-5">
+  {% if balance_sheet %}
+  <pre class="text-xs text-gray-300 font-mono overflow-x-auto whitespace-pre leading-5">{{ balance_sheet }}</pre>
+  {% else %}
+  <p class="text-gray-500 text-sm">No data for this period.</p>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const ACTIVE_TAB   = 'bg-indigo-600 text-white';
+  const INACTIVE_TAB = 'text-gray-400 hover:bg-gray-800 hover:text-white';
+
+  function switchTab(name) {
+    const isIncome = name === 'income';
+    document.getElementById('panel-income').classList.toggle('hidden', !isIncome);
+    document.getElementById('panel-balance').classList.toggle('hidden', isIncome);
+
+    ['income', 'balance'].forEach(t => {
+      const btn = document.getElementById('tab-btn-' + t);
+      btn.className = 'px-4 py-1.5 rounded-md text-sm font-medium transition-colors ' +
+                      (t === name ? ACTIVE_TAB : INACTIVE_TAB);
+    });
+
+    // Keep tab in sync with the period form so it's preserved on period change
+    document.getElementById('form-tab').value = name;
+  }
+
+  // Initialise to the server-selected tab
+  switchTab('{{ tab }}');
+</script>
+{% endblock %}

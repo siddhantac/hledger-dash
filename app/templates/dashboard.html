@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — hledger-dash{% endblock %}
+{% block heading %}Dashboard{% endblock %}
+
+{% block content %}
+{% if error %}
+<div class="mb-6 rounded-lg bg-red-900/40 border border-red-700 px-4 py-3 text-sm text-red-300">
+  <strong>Error:</strong> {{ error }}
+</div>
+{% endif %}
+
+<!-- Summary cards -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+  <div class="bg-gray-900 rounded-xl border border-gray-800 px-5 py-4">
+    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Income</p>
+    <p class="text-2xl font-bold text-emerald-400">{{ "%.2f"|format(summary.income) }}</p>
+  </div>
+  <div class="bg-gray-900 rounded-xl border border-gray-800 px-5 py-4">
+    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Expenses</p>
+    <p class="text-2xl font-bold text-rose-400">{{ "%.2f"|format(summary.expenses) }}</p>
+  </div>
+  <div class="bg-gray-900 rounded-xl border border-gray-800 px-5 py-4">
+    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Net</p>
+    <p class="text-2xl font-bold {% if summary.net >= 0 %}text-indigo-400{% else %}text-orange-400{% endif %}">
+      {{ "%.2f"|format(summary.net) }}
+    </p>
+  </div>
+</div>
+
+<!-- Monthly bar chart -->
+<div class="bg-gray-900 rounded-xl border border-gray-800 p-5">
+  <h2 class="text-sm font-semibold text-gray-300 mb-4">Monthly Income vs Expenses — {{ year }}</h2>
+  <div class="relative h-72">
+    <canvas id="monthlyChart"></canvas>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  barChart('monthlyChart',
+    {{ chart_labels | tojson }},
+    [
+      { label: 'Income',   data: {{ monthly_income | tojson }} },
+      { label: 'Expenses', data: {{ monthly_expenses | tojson }} },
+    ]
+  );
+</script>
+{% endblock %}
