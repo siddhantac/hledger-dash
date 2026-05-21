@@ -4,83 +4,121 @@
 {% block heading %}Income{% endblock %}
 
 {% block content %}
-{% if error %}
-<div class="mb-6 rounded-lg bg-red-900/40 border border-red-700 px-4 py-3 text-sm text-red-300">
-  <strong>Error:</strong> {{ error }}
-</div>
-{% endif %}
 
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-
-  <!-- Pie chart -->
-  <div class="bg-gray-900 rounded-xl border border-gray-800 p-5">
-    <h2 class="text-sm font-semibold text-gray-300 mb-4">Income by Source</h2>
-    {% if breakdown %}
-    <div class="relative h-72">
-      <canvas id="incomePieChart"></canvas>
+<!-- Summary cards -->
+<div class="grid grid-cols-4 gap-4 mb-6">
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Total Income</div>
+    <div class="text-2xl font-semibold text-emerald-400">{{ total_income | fmt }}</div>
+    <div class="text-xs text-gray-600 mt-1">{{ date_from }} → {{ date_to }}</div>
+  </div>
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Avg Monthly</div>
+    <div class="text-2xl font-semibold text-white">{{ avg_monthly | fmt }}</div>
+    <div class="text-xs text-gray-600 mt-1">{{ date_from }} → {{ date_to }}</div>
+  </div>
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">vs Last Year</div>
+    {% if yoy_pct_change is not none %}
+    <div class="text-2xl font-semibold {% if yoy_pct_change >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">
+      {% if yoy_pct_change >= 0 %}+{% endif %}{{ yoy_pct_change | fmt_pct }}
     </div>
+    <div class="text-xs text-gray-600 mt-1">{{ yoy_total | fmt }} last year</div>
     {% else %}
-    <p class="text-gray-500 text-sm">No income data for this period.</p>
+    <div class="text-2xl font-semibold text-gray-600">—</div>
+    <div class="text-xs text-gray-600 mt-1">No prior year data</div>
     {% endif %}
   </div>
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Last Month</div>
+    <div class="text-2xl font-semibold text-emerald-400">{{ last_month_income | fmt }}</div>
+    <div class="text-xs text-gray-600 mt-1">{{ last_month }}</div>
+  </div>
+</div>
 
-  <!-- Breakdown table -->
-  <div class="bg-gray-900 rounded-xl border border-gray-800 p-5">
-    <h2 class="text-sm font-semibold text-gray-300 mb-4">Income Sources</h2>
-    {% if breakdown %}
+<!-- Pie chart + source table -->
+<div class="grid grid-cols-2 gap-4 mb-6">
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-sm font-medium text-gray-400 mb-3">By Source</div>
+    {% if pie_labels %}
+    <canvas id="incomePie" height="220"></canvas>
+    {% else %}
+    <p class="text-gray-600 text-sm">No data for this period.</p>
+    {% endif %}
+  </div>
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800 overflow-auto">
+    <div class="text-sm font-medium text-gray-400 mb-3">Source Breakdown</div>
+    {% if table_rows %}
     <table class="w-full text-sm">
       <thead>
-        <tr class="text-gray-500 text-xs uppercase border-b border-gray-800">
-          <th class="text-left pb-2">Source</th>
-          <th class="text-right pb-2">Amount</th>
-          <th class="text-right pb-2">Share</th>
+        <tr class="text-xs text-gray-500 border-b border-gray-800">
+          <th class="text-left py-2 font-medium">Source</th>
+          <th class="text-right py-2 font-medium">Amount</th>
+          <th class="text-right py-2 font-medium">%</th>
+          <th class="text-right py-2 font-medium">Last Year</th>
+          <th class="text-right py-2 font-medium">Change</th>
         </tr>
       </thead>
       <tbody>
-        {% set total = breakdown | sum(attribute='amount') %}
-        {% for row in breakdown %}
-        <tr class="border-b border-gray-800/50 hover:bg-gray-800/30">
-          <td class="py-2 text-gray-300">{{ row.account }}</td>
-          <td class="py-2 text-right text-emerald-400 font-mono">{{ "%.2f"|format(row.amount) }}</td>
-          <td class="py-2 text-right text-gray-500">
-            {% if total > 0 %}{{ "%.0f"|format(row.amount / total * 100) }}%{% endif %}
+        {% for row in table_rows %}
+        <tr class="border-b border-gray-800 hover:bg-gray-800/50">
+          <td class="py-1.5 text-gray-300 capitalize">{{ row.account }}</td>
+          <td class="py-1.5 text-right text-emerald-400 font-mono">{{ row.amount | fmt }}</td>
+          <td class="py-1.5 text-right text-gray-500">{{ row.pct_of_total | fmt_pct }}</td>
+          <td class="py-1.5 text-right text-gray-500 font-mono">
+            {% if row.last_year > 0 %}{{ row.last_year | fmt }}{% else %}—{% endif %}
+          </td>
+          <td class="py-1.5 text-right font-mono text-xs">
+            {% if row.pct_change is none %}
+              <span class="text-gray-500">New</span>
+            {% elif row.delta >= 0 %}
+              <span class="text-emerald-400">+{{ row.pct_change | fmt_pct }}</span>
+            {% else %}
+              <span class="text-rose-400">{{ row.pct_change | fmt_pct }}</span>
+            {% endif %}
           </td>
         </tr>
         {% endfor %}
-        <tr>
-          <td class="pt-3 font-semibold text-gray-200">Total</td>
-          <td class="pt-3 text-right font-semibold text-emerald-300 font-mono">{{ "%.2f"|format(total) }}</td>
-          <td></td>
-        </tr>
       </tbody>
     </table>
     {% else %}
-    <p class="text-gray-500 text-sm">No income data for this period.</p>
+    <p class="text-gray-600 text-sm">No data for this period.</p>
     {% endif %}
   </div>
-
 </div>
 
-<!-- Monthly income trend -->
-<div class="bg-gray-900 rounded-xl border border-gray-800 p-5">
-  <h2 class="text-sm font-semibold text-gray-300 mb-4">Monthly Income Trend — {{ year }}</h2>
-  <div class="relative h-64">
-    <canvas id="incomeLineChart"></canvas>
-  </div>
+<!-- All-time income trend -->
+{% if trend_labels %}
+<div class="bg-gray-900 rounded-lg p-4 border border-gray-800 mb-6">
+  <div class="text-sm font-medium text-gray-400 mb-3">Monthly Income (All Time)</div>
+  <canvas id="trendChart" height="80"></canvas>
 </div>
+{% endif %}
+
+<!-- Savings rate trend -->
+{% if savings_labels %}
+<div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+  <div class="text-sm font-medium text-gray-400 mb-3">Monthly Savings Rate — Last 12 Months</div>
+  <canvas id="savingsChart" height="80"></canvas>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block scripts %}
 <script>
-  {% if breakdown %}
-  pieChart('incomePieChart',
-    {{ pie_labels | tojson }},
-    {{ pie_amounts | tojson }}
-  );
+  {% if pie_labels %}
+  pieChart('incomePie', {{ pie_labels | tojson }}, {{ pie_amounts | tojson }});
   {% endif %}
-  lineChart('incomeLineChart',
-    {{ chart_labels | tojson }},
-    [{ label: 'Income', data: {{ monthly_income | tojson }} }]
-  );
+  {% if trend_labels %}
+  lineChart('trendChart', {{ trend_labels | tojson }}, [
+    { label: 'Income', data: {{ trend_data | tojson }}, fill: true },
+  ]);
+  {% endif %}
+  {% if savings_labels %}
+  lineChart('savingsChart', {{ savings_labels | tojson }}, [
+    { label: 'Savings Rate %', data: {{ savings_rate_data | tojson }}, fill: false },
+  ]);
+  {% endif %}
 </script>
 {% endblock %}

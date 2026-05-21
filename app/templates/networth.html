@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Net Worth — hledger-dash{% endblock %}
+{% block heading %}Net Worth{% endblock %}
+
+{% block header_filter %}
+<form method="GET" class="flex items-center gap-2">
+  <span class="text-xs text-gray-500">Table year</span>
+  <select name="year"
+          class="bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+    {% for y in years %}
+    <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit"
+          class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-3 py-1.5 rounded-lg">
+    Go
+  </button>
+</form>
+{% endblock %}
+
+{% block content %}
+
+<!-- Summary cards -->
+<div class="grid grid-cols-4 gap-4 mb-6">
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Liquid Assets</div>
+    <div class="text-2xl font-semibold text-white">{{ snapshot.liquid | fmt }}</div>
+  </div>
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Invested</div>
+    <div class="text-2xl font-semibold text-cyan-400">{{ snapshot.invested | fmt }}</div>
+  </div>
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Credit Card Debt</div>
+    <div class="text-2xl font-semibold text-red-400">{{ snapshot.liabilities | fmt }}</div>
+  </div>
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Net Worth</div>
+    <div class="text-2xl font-semibold {% if snapshot.net_worth >= 0 %}text-green-400{% else %}text-red-400{% endif %}">
+      {{ snapshot.net_worth | fmt }}
+    </div>
+  </div>
+</div>
+
+<!-- Net worth history chart -->
+<div class="bg-gray-900 rounded-lg p-4 border border-gray-800 mb-6">
+  <div class="text-sm font-medium text-gray-400 mb-3">Net Worth Over Time</div>
+  <canvas id="networthChart" height="80"></canvas>
+</div>
+
+<!-- Asset and liability breakdown -->
+<div class="grid grid-cols-2 gap-4 mb-6">
+
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-sm font-medium text-gray-400 mb-3">Asset Breakdown</div>
+    {% if asset_breakdown %}
+    <table class="w-full text-sm">
+      <tbody>
+        {% for row in asset_breakdown %}
+        <tr class="border-b border-gray-800">
+          <td class="py-2 text-gray-300 capitalize">{{ row.account }}</td>
+          <td class="py-2 text-right text-white font-mono">{{ row.amount | fmt }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-gray-600 text-sm">No asset data.</p>
+    {% endif %}
+  </div>
+
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-sm font-medium text-gray-400 mb-3">Liabilities (Credit Cards)</div>
+    {% if liability_breakdown %}
+    <table class="w-full text-sm">
+      <tbody>
+        {% for row in liability_breakdown %}
+        <tr class="border-b border-gray-800">
+          <td class="py-2 text-gray-300 capitalize">{{ row.account }}</td>
+          <td class="py-2 text-right text-red-400 font-mono">{{ row.amount | fmt }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-gray-600 text-sm">No liability data.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Monthly table for selected year -->
+<div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+  <div class="text-sm font-medium text-gray-400 mb-3">Monthly Snapshot — {{ selected_year }}</div>
+  {% if table_rows %}
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="text-xs text-gray-500 border-b border-gray-800">
+        <th class="text-left py-2 font-medium">Month</th>
+        <th class="text-right py-2 font-medium">Assets</th>
+        <th class="text-right py-2 font-medium">CC Debt</th>
+        <th class="text-right py-2 font-medium">Net Worth</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in table_rows %}
+      <tr class="border-b border-gray-800 hover:bg-gray-800/50">
+        <td class="py-2 text-gray-300">{{ row.month }}</td>
+        <td class="py-2 text-right text-white font-mono">{{ row.assets | fmt }}</td>
+        <td class="py-2 text-right text-red-400 font-mono">{{ row.liabilities | fmt }}</td>
+        <td class="py-2 text-right font-mono font-semibold
+                   {% if row.net_worth >= 0 %}text-green-400{% else %}text-red-400{% endif %}">
+          {{ row.net_worth | fmt }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="text-gray-600 text-sm">No data for {{ selected_year }}.</p>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  lineChart(
+    'networthChart',
+    {{ chart_labels | tojson }},
+    [
+      { label: 'Assets',    data: {{ chart_assets | tojson }} },
+      { label: 'Net Worth', data: {{ chart_net_worth | tojson }} },
+    ]
+  );
+</script>
+{% endblock %}

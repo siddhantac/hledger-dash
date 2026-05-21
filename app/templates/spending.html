@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Spending — hledger-dash{% endblock %}
+{% block heading %}Spending{% endblock %}
+
+{% block content %}
+
+<!-- Summary cards -->
+<div class="grid grid-cols-2 gap-4 mb-6">
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Total Spend</div>
+    <div class="text-2xl font-semibold text-rose-400">{{ total_spend | fmt }}</div>
+    <div class="text-xs text-gray-600 mt-1">{{ date_from }} → {{ date_to }}</div>
+  </div>
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Avg Monthly Spend</div>
+    <div class="text-2xl font-semibold text-white">{{ avg_monthly | fmt }}</div>
+  </div>
+</div>
+
+<!-- Pie chart + category table -->
+<div class="grid grid-cols-2 gap-4 mb-6">
+
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-sm font-medium text-gray-400 mb-3">By Category</div>
+    {% if pie_labels %}
+    <canvas id="spendingPie" height="220"></canvas>
+    {% else %}
+    <p class="text-gray-600 text-sm">No data for this period.</p>
+    {% endif %}
+  </div>
+
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800 overflow-auto">
+    <div class="text-sm font-medium text-gray-400 mb-3">Category Breakdown</div>
+    {% if table_rows %}
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-xs text-gray-500 border-b border-gray-800">
+          <th class="text-left py-2 font-medium">Category</th>
+          <th class="text-right py-2 font-medium">Amount</th>
+          <th class="text-right py-2 font-medium">%</th>
+          <th class="text-right py-2 font-medium">Last Year</th>
+          <th class="text-right py-2 font-medium">Change</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in table_rows %}
+        <tr class="border-b border-gray-800 hover:bg-gray-800/50">
+          <td class="py-1.5 text-gray-300 capitalize">{{ row.account }}</td>
+          <td class="py-1.5 text-right text-white font-mono">{{ row.amount | fmt }}</td>
+          <td class="py-1.5 text-right text-gray-500">{{ row.pct_of_total | fmt_pct }}</td>
+          <td class="py-1.5 text-right text-gray-500 font-mono">
+            {% if row.last_year > 0 %}{{ row.last_year | fmt }}{% else %}—{% endif %}
+          </td>
+          <td class="py-1.5 text-right font-mono text-xs">
+            {% if row.pct_change is none %}
+              <span class="text-gray-500">New</span>
+            {% elif row.delta > 0 %}
+              <span class="text-rose-400">+{{ row.pct_change | fmt_pct }}</span>
+            {% else %}
+              <span class="text-emerald-400">{{ row.pct_change | fmt_pct }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-gray-600 text-sm">No data for this period.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Category trend chart -->
+{% if trend_datasets %}
+<div class="bg-gray-900 rounded-lg p-4 border border-gray-800 mb-6">
+  <div class="text-sm font-medium text-gray-400 mb-3">Top Category Trends (all time)</div>
+  <canvas id="trendChart" height="80"></canvas>
+</div>
+{% endif %}
+
+<!-- Heat map -->
+{% if heatmap_rows %}
+<div class="bg-gray-900 rounded-lg p-4 border border-gray-800 mb-6 overflow-x-auto">
+  <div class="text-sm font-medium text-gray-400 mb-3">Monthly Spend Heat Map</div>
+  <table class="text-xs w-full">
+    <thead>
+      <tr class="text-gray-500">
+        <th class="text-left pr-3 py-1 font-medium">Year</th>
+        {% for name in month_names %}
+        <th class="text-right px-1 py-1 font-medium">{{ name }}</th>
+        {% endfor %}
+        <th class="text-right pl-3 py-1 font-medium">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in heatmap_rows %}
+      {% set row_total = row.months | sum(attribute='amount') %}
+      <tr>
+        <td class="pr-3 py-1 text-gray-400 font-medium">{{ row.year }}</td>
+        {% for cell in row.months %}
+        <td class="px-1 py-1 text-right font-mono rounded"
+            style="background-color: rgba(239,68,68,{{ (cell.intensity * 0.65) | round(3) }})">
+          {% if cell.amount > 0 %}{{ cell.amount | fmt }}{% endif %}
+        </td>
+        {% endfor %}
+        <td class="pl-3 py-1 text-right font-mono text-gray-300">{{ row_total | fmt }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Quarterly rollup -->
+{% if quarterly_rows %}
+<div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+  <div class="text-sm font-medium text-gray-400 mb-3">Quarterly Rollup</div>
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="text-xs text-gray-500 border-b border-gray-800">
+        <th class="text-left py-2 font-medium">Year</th>
+        <th class="text-right py-2 font-medium">Q1</th>
+        <th class="text-right py-2 font-medium">Q2</th>
+        <th class="text-right py-2 font-medium">Q3</th>
+        <th class="text-right py-2 font-medium">Q4</th>
+        <th class="text-right py-2 font-medium text-gray-300">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in quarterly_rows %}
+      <tr class="border-b border-gray-800 hover:bg-gray-800/50">
+        <td class="py-2 text-gray-300 font-medium">{{ row.year }}</td>
+        {% for q in row.quarters %}
+        <td class="py-2 text-right font-mono text-gray-300">
+          {% if q > 0 %}{{ q | fmt }}{% else %}—{% endif %}
+        </td>
+        {% endfor %}
+        <td class="py-2 text-right font-mono font-semibold text-white">{{ row.total | fmt }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  {% if pie_labels %}
+  pieChart('spendingPie', {{ pie_labels | tojson }}, {{ pie_amounts | tojson }});
+  {% endif %}
+  {% if trend_datasets %}
+  lineChart('trendChart', {{ trend_labels | tojson }}, {{ trend_datasets | tojson }});
+  {% endif %}
+</script>
+{% endblock %}

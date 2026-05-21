@@ -65,7 +65,7 @@ function lineChart(canvasId, labels, datasets) {
         ...ds,
         borderColor: CHART_COLORS[i],
         backgroundColor: CHART_COLORS[i] + '22',
-        fill: true,
+        fill: ds.fill !== undefined ? ds.fill : true,
         tension: 0.3,
         pointRadius: 4,
       }))
@@ -79,6 +79,29 @@ function lineChart(canvasId, labels, datasets) {
       plugins: { legend: { position: 'top' } }
     }
   });
+}
+
+function quickRange(range) {
+  const form = document.querySelector('form[data-first-month]');
+  if (!form) return;
+  const fromInput = form.querySelector('[name=date_from]');
+  const toInput   = form.querySelector('[name=date_to]');
+  const now = new Date();
+  const y   = now.getFullYear();
+  const cur = `${y}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const lm  = now.getMonth() === 0
+    ? `${y - 1}-12`
+    : `${y}-${String(now.getMonth()).padStart(2, '0')}`;
+  const first = form.dataset.firstMonth || cur;
+  const map = {
+    ytd:       [String(y) + '-01', cur],
+    lastmonth: [lm, lm],
+    lastyear:  [`${y - 1}-01`, `${y - 1}-12`],
+    alltime:   [first, cur],
+  };
+  if (!map[range]) return;
+  [fromInput.value, toInput.value] = map[range];
+  form.submit();
 }
 
 function formatAmount(value) {

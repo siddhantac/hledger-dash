@@ -4,11 +4,34 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ${JOURNAL_DIR}:/journals:ro
+      - journals:/journals:ro
     environment:
       - HLEDGER_FILE=/journals/${JOURNAL_FILE:-main.journal}
     restart: unless-stopped
-    develop:
-      watch:
-        - action: rebuild
-          path: .
+    depends_on:
+      - journal-sync
+
+  journal-sync:
+    image: alpine/git
+    working_dir: /journals
+    volumes:
+      - journals:/journals
+    environment:
+      - JOURNAL_REPO=${JOURNAL_REPO}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        if [ ! -d .git ]; then
+          echo "Cloning $$JOURNAL_REPO ..."
+          git clone $$JOURNAL_REPO .
+        fi
+        while true; do
+          git pull --ff-only && echo "[$(date)] Pulled OK" || echo "[$(date)] Pull failed"
+          sleep 300
+        done
+    restart: unless-stopped
+
+volumes:
+  journals:

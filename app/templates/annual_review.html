@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Annual Review — {{ selected_year }} — hledger-dash{% endblock %}
+{% block heading %}Annual Review{% endblock %}
+
+{% block header_filter %}
+<div class="flex items-center gap-1">
+  {% for y in available_years %}
+  <a href="?year={{ y }}"
+     class="text-sm px-3 py-1.5 rounded-lg
+       {%- if y == selected_year %} bg-indigo-600 text-white
+       {%- else %} bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white{% endif %}">
+    {{ y }}
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- Summary cards -->
+<div class="grid grid-cols-4 gap-4 mb-6">
+
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Income</div>
+    <div class="text-2xl font-semibold text-emerald-400">{{ summary.income | fmt }}</div>
+    {% if prior_summary.income > 0 %}
+      {% set d = ((summary.income - prior_summary.income) / prior_summary.income * 100) %}
+      <div class="text-xs mt-1 {% if d >= 0 %}text-emerald-500{% else %}text-rose-500{% endif %}">
+        {% if d >= 0 %}▲{% else %}▼{% endif %} {{ d | fmt_pct }} vs {{ prior_year }}
+      </div>
+    {% else %}
+      <div class="text-xs text-gray-600 mt-1">No prior year</div>
+    {% endif %}
+  </div>
+
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Expenses</div>
+    <div class="text-2xl font-semibold text-rose-400">{{ summary.expenses | fmt }}</div>
+    {% if prior_summary.expenses > 0 %}
+      {% set d = ((summary.expenses - prior_summary.expenses) / prior_summary.expenses * 100) %}
+      <div class="text-xs mt-1 {% if d <= 0 %}text-emerald-500{% else %}text-rose-500{% endif %}">
+        {% if d > 0 %}▲{% else %}▼{% endif %} {{ d | fmt_pct }} vs {{ prior_year }}
+      </div>
+    {% else %}
+      <div class="text-xs text-gray-600 mt-1">No prior year</div>
+    {% endif %}
+  </div>
+
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Net Saved</div>
+    <div class="text-2xl font-semibold {% if summary.net >= 0 %}text-indigo-400{% else %}text-orange-400{% endif %}">
+      {{ summary.net | fmt }}
+    </div>
+    {% if prior_summary.income > 0 %}
+      <div class="text-xs text-gray-600 mt-1">{{ prior_summary.net | fmt }} in {{ prior_year }}</div>
+    {% endif %}
+  </div>
+
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Savings Rate</div>
+    <div class="text-2xl font-semibold
+      {%- if summary.savings_rate >= 20 %} text-emerald-400
+      {%- elif summary.savings_rate >= 0 %} text-yellow-400
+      {%- else %} text-rose-400{% endif %}">
+      {{ summary.savings_rate | fmt_pct }}
+    </div>
+    {% if prior_summary.income > 0 %}
+      {% set d = summary.savings_rate - prior_summary.savings_rate %}
+      <div class="text-xs mt-1 {% if d >= 0 %}text-emerald-500{% else %}text-rose-500{% endif %}">
+        {% if d >= 0 %}▲{% else %}▼{% endif %} {{ d | fmt_pct }} pts vs {{ prior_year }}
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Net worth change -->
+{% if nw_start or nw_end %}
+<div class="grid grid-cols-3 gap-4 mb-6">
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Net Worth — Start of Year</div>
+    <div class="text-xl font-semibold text-white">{{ nw_start | fmt }}</div>
+    <div class="text-xs text-gray-600 mt-1">Dec {{ prior_year }}</div>
+  </div>
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Net Worth — End of Year</div>
+    <div class="text-xl font-semibold text-white">{{ nw_end | fmt }}</div>
+    <div class="text-xs text-gray-600 mt-1">{{ year_to }}{% if is_current_year %} (YTD){% endif %}</div>
+  </div>
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    {% set nw_delta = nw_end - nw_start %}
+    <div class="text-xs text-gray-500 mb-1">Net Worth — Change</div>
+    <div class="text-xl font-semibold {% if nw_delta >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">
+      {% if nw_delta >= 0 %}+{% endif %}{{ nw_delta | fmt }}
+    </div>
+    {% if nw_start > 0 %}
+      {% set nw_pct = (nw_delta / nw_start * 100) %}
+      <div class="text-xs text-gray-600 mt-1">
+        {% if nw_pct >= 0 %}+{% endif %}{{ nw_pct | fmt_pct }}
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Monthly breakdown -->
+{% if monthly_rows %}
+<div class="bg-gray-900 rounded-lg p-4 border border-gray-800 mb-6">
+  <div class="text-sm font-medium text-gray-400 mb-3">Monthly Breakdown</div>
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="text-xs text-gray-500 border-b border-gray-800">
+        <th class="text-left py-2 font-medium">Month</th>
+        <th class="text-right py-2 font-medium">Income</th>
+        <th class="text-right py-2 font-medium">Expenses</th>
+        <th class="text-right py-2 font-medium">Saved</th>
+        <th class="text-right py-2 font-medium">Rate</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in monthly_rows %}
+      <tr class="border-b border-gray-800
+        {%- if row.month == best_month_key %} bg-emerald-900/20
+        {%- elif row.month == worst_month_key %} bg-rose-900/20
+        {%- else %} hover:bg-gray-800/50{% endif %}">
+        <td class="py-1.5 text-gray-300 font-medium">
+          {{ row.label }}
+          {% if row.month == best_month_key %}<span class="text-xs text-emerald-600 ml-1">best</span>{% endif %}
+          {% if row.month == worst_month_key %}<span class="text-xs text-rose-600 ml-1">worst</span>{% endif %}
+        </td>
+        <td class="py-1.5 text-right font-mono text-emerald-400">
+          {% if row.income > 0 %}{{ row.income | fmt }}{% else %}—{% endif %}
+        </td>
+        <td class="py-1.5 text-right font-mono text-rose-400">
+          {% if row.expenses > 0 %}{{ row.expenses | fmt }}{% else %}—{% endif %}
+        </td>
+        <td class="py-1.5 text-right font-mono {% if row.saved >= 0 %}text-indigo-400{% else %}text-orange-400{% endif %}">
+          {{ row.saved | fmt }}
+        </td>
+        <td class="py-1.5 text-right font-mono
+          {%- if row.income == 0 %} text-gray-600
+          {%- elif row.savings_rate >= 20 %} text-emerald-400
+          {%- elif row.savings_rate >= 0 %} text-yellow-400
+          {%- else %} text-rose-400{% endif %}">
+          {% if row.income > 0 %}{{ row.savings_rate | fmt_pct }}{% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Category movers -->
+{% if increases or decreases %}
+<div class="grid grid-cols-2 gap-4">
+
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-sm font-medium text-gray-400 mb-3">Biggest Spending Increases</div>
+    {% if increases %}
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-xs text-gray-500 border-b border-gray-800">
+          <th class="text-left py-1.5 font-medium">Category</th>
+          <th class="text-right py-1.5 font-medium">{{ selected_year }}</th>
+          <th class="text-right py-1.5 font-medium">{{ prior_year }}</th>
+          <th class="text-right py-1.5 font-medium">Change</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in increases %}
+        <tr class="border-b border-gray-800 hover:bg-gray-800/50">
+          <td class="py-1.5 text-gray-300 capitalize">{{ m.account }}</td>
+          <td class="py-1.5 text-right font-mono text-white">{{ m.amount | fmt }}</td>
+          <td class="py-1.5 text-right font-mono text-gray-500">
+            {% if m.prior > 0 %}{{ m.prior | fmt }}{% else %}—{% endif %}
+          </td>
+          <td class="py-1.5 text-right font-mono text-xs text-rose-400">
+            +{{ m.delta | fmt }}
+            {% if m.pct_change is not none %}(+{{ m.pct_change | fmt_pct }}){% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-gray-600 text-sm">No increases vs {{ prior_year }}.</p>
+    {% endif %}
+  </div>
+
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-sm font-medium text-gray-400 mb-3">Biggest Spending Decreases</div>
+    {% if decreases %}
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-xs text-gray-500 border-b border-gray-800">
+          <th class="text-left py-1.5 font-medium">Category</th>
+          <th class="text-right py-1.5 font-medium">{{ selected_year }}</th>
+          <th class="text-right py-1.5 font-medium">{{ prior_year }}</th>
+          <th class="text-right py-1.5 font-medium">Change</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in decreases %}
+        <tr class="border-b border-gray-800 hover:bg-gray-800/50">
+          <td class="py-1.5 text-gray-300 capitalize">{{ m.account }}</td>
+          <td class="py-1.5 text-right font-mono text-white">{{ m.amount | fmt }}</td>
+          <td class="py-1.5 text-right font-mono text-gray-500">
+            {% if m.prior > 0 %}{{ m.prior | fmt }}{% else %}—{% endif %}
+          </td>
+          <td class="py-1.5 text-right font-mono text-xs text-emerald-400">
+            {{ m.delta | fmt }}
+            {% if m.pct_change is not none %}({{ m.pct_change | fmt_pct }}){% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-gray-600 text-sm">No decreases vs {{ prior_year }}.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endif %}
+
+{% endblock %}

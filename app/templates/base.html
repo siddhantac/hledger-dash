@@ -9,15 +9,7 @@
   <script>
     tailwind.config = {
       darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            gray: {
-              950: '#0a0a0f',
-            }
-          }
-        }
-      }
+      theme: { extend: { colors: { gray: { 950: '#0a0a0f' } } } }
     }
   </script>
 </head>
@@ -25,37 +17,58 @@
 
 <div class="flex h-full min-h-screen">
   <!-- Sidebar -->
-  <aside class="w-56 bg-gray-900 border-r border-gray-800 flex flex-col py-6 px-4 shrink-0">
+  <aside class="w-52 bg-gray-900 border-r border-gray-800 flex flex-col py-6 px-4 shrink-0">
     <div class="mb-8">
-      <span class="text-xl font-bold text-white">hledger</span>
-      <span class="text-xl font-bold text-indigo-400">dash</span>
+      <span class="text-xl font-bold text-white">hledger</span><span class="text-xl font-bold text-indigo-400">dash</span>
     </div>
     <nav class="flex flex-col gap-1">
-      <a href="/?date_from={{ date_from }}&date_to={{ date_to }}"
-         class="px-3 py-2 rounded-lg text-sm font-medium {% if active == 'dashboard' %}bg-indigo-600 text-white{% else %}text-gray-400 hover:bg-gray-800 hover:text-white{% endif %}">
-        Dashboard
-      </a>
-      <a href="/expenses?date_from={{ date_from }}&date_to={{ date_to }}"
-         class="px-3 py-2 rounded-lg text-sm font-medium {% if active == 'expenses' %}bg-indigo-600 text-white{% else %}text-gray-400 hover:bg-gray-800 hover:text-white{% endif %}">
-        Expenses
-      </a>
-      <a href="/income?date_from={{ date_from }}&date_to={{ date_to }}"
-         class="px-3 py-2 rounded-lg text-sm font-medium {% if active == 'income' %}bg-indigo-600 text-white{% else %}text-gray-400 hover:bg-gray-800 hover:text-white{% endif %}">
-        Income
-      </a>
-      <a href="/reports?date_from={{ date_from }}&date_to={{ date_to }}"
-         class="px-3 py-2 rounded-lg text-sm font-medium {% if active == 'reports' %}bg-indigo-600 text-white{% else %}text-gray-400 hover:bg-gray-800 hover:text-white{% endif %}">
-        Reports
-      </a>
+
+      {% set nav_items = [
+        ("dashboard",     "/",              "Dashboard"),
+        ("spending",      "/spending",       "Spending"),
+        ("income",        "/income",         "Income"),
+        ("networth",      "/networth",       "Net Worth"),
+        ("investments",   "/investments",    "Investments"),
+        ("annual_review",  "/annual-review",   "Annual Review"),
+        ("transactions",   "/transactions",    "Transactions"),
+      ] %}
+
+      {% set coming_soon = () %}
+
+      {% for key, href, label in nav_items %}
+        {% if key == active %}
+          <span class="px-3 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white">{{ label }}</span>
+        {% elif key in coming_soon %}
+          <span class="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 cursor-not-allowed"
+                title="Coming soon">{{ label }}</span>
+        {% else %}
+          <a href="{{ href }}"
+             class="px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white">
+            {{ label }}
+          </a>
+        {% endif %}
+      {% endfor %}
+
     </nav>
   </aside>
 
   <!-- Main content -->
   <div class="flex-1 flex flex-col overflow-auto">
-    <!-- Top bar with filter -->
     <header class="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center justify-between">
       <h1 class="text-lg font-semibold text-white">{% block heading %}{% endblock %}</h1>
-      <form method="GET" class="flex items-center gap-2">
+      {% block header_filter %}
+      <form method="GET" class="flex items-center gap-2" data-first-month="{{ first_month | default('') }}">
+        <div class="flex gap-1 mr-1">
+          <button type="button" onclick="quickRange('ytd')"
+                  class="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white">YTD</button>
+          <button type="button" onclick="quickRange('lastmonth')"
+                  class="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white">Last Month</button>
+          <button type="button" onclick="quickRange('lastyear')"
+                  class="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white">Last Year</button>
+          <button type="button" onclick="quickRange('alltime')"
+                  class="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white">All Time</button>
+        </div>
+        <span class="text-xs text-gray-600 mr-1">|</span>
         <span class="text-xs text-gray-500">From</span>
         <input type="month" name="date_from" value="{{ date_from }}"
                class="bg-gray-800 border border-gray-700 text-sm text-white rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
@@ -67,9 +80,15 @@
           Apply
         </button>
       </form>
+      {% endblock %}
     </header>
 
     <main class="flex-1 p-6">
+      {% if error %}
+      <div class="mb-4 rounded-lg bg-red-900/40 border border-red-700 px-4 py-3 text-red-300 text-sm">
+        {{ error }}
+      </div>
+      {% endif %}
       {% block content %}{% endblock %}
     </main>
   </div>

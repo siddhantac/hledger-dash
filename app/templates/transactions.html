@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Transactions — hledger-dash{% endblock %}
+{% block heading %}Transactions{% endblock %}
+
+{% block content %}
+
+<div class="mb-4">
+  <span class="text-sm text-gray-500">
+    {{ txn_count }} transaction{{ 's' if txn_count != 1 }} &mdash; {{ date_from }} → {{ date_to }}
+  </span>
+</div>
+
+{% if txns %}
+<div class="bg-gray-900 rounded-lg border border-gray-800 overflow-auto">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="text-xs text-gray-500 border-b border-gray-800">
+        <th class="text-left px-4 py-2.5 font-medium w-28">Date</th>
+        <th class="text-left px-4 py-2.5 font-medium">Description</th>
+        <th class="text-left px-4 py-2.5 font-medium">Category</th>
+        <th class="text-left px-4 py-2.5 font-medium">Account</th>
+        <th class="text-right px-4 py-2.5 font-medium">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for txn in txns %}
+      <tr class="border-b border-gray-800 hover:bg-gray-800/40">
+        <td class="px-4 py-2 text-gray-500 font-mono text-xs whitespace-nowrap">{{ txn.date }}</td>
+        <td class="px-4 py-2 text-gray-300 max-w-xs truncate">{{ txn.description }}</td>
+        <td class="px-4 py-2 text-gray-400 font-mono text-xs">{{ txn.category_account }}</td>
+        <td class="px-4 py-2 text-gray-500 font-mono text-xs">{{ txn.real_account }}</td>
+        <td class="px-4 py-2 text-right font-mono text-xs whitespace-nowrap
+          {%- if txn.kind == 'expense' %} text-rose-400
+          {%- elif txn.kind == 'income' %} text-emerald-400
+          {%- else %} text-gray-300{% endif %}">
+          {{ txn.amount }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="bg-gray-900 rounded-lg border border-gray-800 p-8 text-center text-gray-600 text-sm">
+  No transactions found for this period.
+</div>
+{% endif %}
+
+{% endblock %}

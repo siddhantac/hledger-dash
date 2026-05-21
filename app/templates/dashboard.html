@@ -4,47 +4,99 @@
 {% block heading %}Dashboard{% endblock %}
 
 {% block content %}
-{% if error %}
-<div class="mb-6 rounded-lg bg-red-900/40 border border-red-700 px-4 py-3 text-sm text-red-300">
-  <strong>Error:</strong> {{ error }}
-</div>
-{% endif %}
 
-<!-- Summary cards -->
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-  <div class="bg-gray-900 rounded-xl border border-gray-800 px-5 py-4">
-    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Income</p>
-    <p class="text-2xl font-bold text-emerald-400">{{ "%.2f"|format(summary.income) }}</p>
+<!-- Period summary cards -->
+<div class="grid grid-cols-4 gap-4 mb-4">
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Income</div>
+    <div class="text-2xl font-semibold text-emerald-400">{{ period_summary.income | fmt }}</div>
+    <div class="text-xs text-gray-600 mt-1">{{ date_from }} → {{ date_to }}</div>
   </div>
-  <div class="bg-gray-900 rounded-xl border border-gray-800 px-5 py-4">
-    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Expenses</p>
-    <p class="text-2xl font-bold text-rose-400">{{ "%.2f"|format(summary.expenses) }}</p>
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Expenses</div>
+    <div class="text-2xl font-semibold text-rose-400">{{ period_summary.expenses | fmt }}</div>
+    <div class="text-xs text-gray-600 mt-1">{{ date_from }} → {{ date_to }}</div>
   </div>
-  <div class="bg-gray-900 rounded-xl border border-gray-800 px-5 py-4">
-    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Net</p>
-    <p class="text-2xl font-bold {% if summary.net >= 0 %}text-indigo-400{% else %}text-orange-400{% endif %}">
-      {{ "%.2f"|format(summary.net) }}
-    </p>
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Net Saved</div>
+    <div class="text-2xl font-semibold {% if period_summary.net >= 0 %}text-indigo-400{% else %}text-orange-400{% endif %}">
+      {{ period_summary.net | fmt }}
+    </div>
+    <div class="text-xs text-gray-600 mt-1">{{ date_from }} → {{ date_to }}</div>
+  </div>
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Savings Rate</div>
+    <div class="text-2xl font-semibold
+      {%- if period_summary.savings_rate >= 20 %} text-emerald-400
+      {%- elif period_summary.savings_rate >= 0 %} text-yellow-400
+      {%- else %} text-rose-400{% endif %}">
+      {{ period_summary.savings_rate | fmt_pct }}
+    </div>
+    <div class="text-xs text-gray-600 mt-1">{{ date_from }} → {{ date_to }}</div>
   </div>
 </div>
 
-<!-- Monthly bar chart -->
-<div class="bg-gray-900 rounded-xl border border-gray-800 p-5">
-  <h2 class="text-sm font-semibold text-gray-300 mb-4">Monthly Income vs Expenses — {{ year }}</h2>
-  <div class="relative h-72">
-    <canvas id="monthlyChart"></canvas>
+<!-- Always-on reference cards -->
+<div class="grid grid-cols-4 gap-4 mb-6">
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Last Month</div>
+    <div class="text-xl font-semibold
+      {%- if last_month_summary.savings_rate >= 20 %} text-emerald-400
+      {%- elif last_month_summary.savings_rate >= 0 %} text-yellow-400
+      {%- else %} text-rose-400{% endif %}">
+      {{ last_month_summary.savings_rate | fmt_pct }}
+    </div>
+    <div class="text-xs text-gray-600 mt-1">{{ last_month }}</div>
+  </div>
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Year to Date</div>
+    <div class="text-xl font-semibold
+      {%- if ytd_summary.savings_rate >= 20 %} text-emerald-400
+      {%- elif ytd_summary.savings_rate >= 0 %} text-yellow-400
+      {%- else %} text-rose-400{% endif %}">
+      {{ ytd_summary.savings_rate | fmt_pct }}
+    </div>
+    <div class="text-xs text-gray-600 mt-1">Savings rate</div>
+  </div>
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Trailing 12 Months</div>
+    <div class="text-xl font-semibold
+      {%- if trailing_summary.savings_rate >= 20 %} text-emerald-400
+      {%- elif trailing_summary.savings_rate >= 0 %} text-yellow-400
+      {%- else %} text-rose-400{% endif %}">
+      {{ trailing_summary.savings_rate | fmt_pct }}
+    </div>
+    <div class="text-xs text-gray-600 mt-1">Savings rate</div>
+  </div>
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Net Worth</div>
+    <div class="text-xl font-semibold text-white">{{ net_worth | fmt }}</div>
+    <div class="text-xs text-gray-600 mt-1">As of {{ current_month }}</div>
   </div>
 </div>
+
+<!-- Income vs Expenses bar chart -->
+<div class="bg-gray-900 rounded-lg p-4 border border-gray-800 mb-4">
+  <div class="text-sm font-medium text-gray-400 mb-3">Income vs Expenses — Last 12 Months</div>
+  <canvas id="incExpChart" height="80"></canvas>
+</div>
+
+<!-- Savings rate trend -->
+<div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+  <div class="text-sm font-medium text-gray-400 mb-3">Monthly Savings Rate — Last 12 Months</div>
+  <canvas id="savingsRateChart" height="80"></canvas>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
-  barChart('monthlyChart',
-    {{ chart_labels | tojson }},
-    [
-      { label: 'Income',   data: {{ monthly_income | tojson }} },
-      { label: 'Expenses', data: {{ monthly_expenses | tojson }} },
-    ]
-  );
+  barChart('incExpChart', {{ chart_labels | tojson }}, [
+    { label: 'Income',   data: {{ monthly_income | tojson }} },
+    { label: 'Expenses', data: {{ monthly_expenses | tojson }} },
+  ]);
+  lineChart('savingsRateChart', {{ chart_labels | tojson }}, [
+    { label: 'Savings Rate %', data: {{ savings_rate_data | tojson }}, fill: false },
+  ]);
 </script>
 {% endblock %}
