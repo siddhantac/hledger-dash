@@ -16,8 +16,8 @@ services:
     working_dir: /journals
     volumes:
       - journals:/journals
-      - ${SSH_KEY_PATH:~/.ssh/id_ed25519}:/root/.ssh/id_ed25519:ro
-      - ${SSH_KNOWN_HOSTS_PATH:~/.ssh/known_hosts}:/root/.ssh/known_hosts:ro
+      - ${SSH_KEY_PATH:-~/.ssh/id_ed25519}:/root/.ssh/id_ed25519:ro
+      - ${SSH_KNOWN_HOSTS_PATH:-~/.ssh/known_hosts}:/root/.ssh/known_hosts:ro
     environment:
       - JOURNAL_REPO=${JOURNAL_REPO}
     entrypoint:
