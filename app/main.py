@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 
@@ -13,6 +14,10 @@ from app.routers import annual_review, dashboard, income, investments, networth,
 app = FastAPI(title="hledger-dash")
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+@app.get("/health")
+def health():
+    return JSONResponse({"status": "ok"})
 
 app.include_router(annual_review.router)
 app.include_router(dashboard.router)
