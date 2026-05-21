@@ -2,7 +2,7 @@ services:
   hledger-dash:
     build: .
     ports:
-      - "9099:9099"
+      - "${PORT:-8000}:8000"
     volumes:
       - journals:/journals:ro
     environment:
