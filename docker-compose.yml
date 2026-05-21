@@ -30,7 +30,7 @@ services:
           git clone $$JOURNAL_REPO .
         fi
         while true; do
-          git pull --ff-only && echo "[$(date)] Pulled OK" || echo "[$(date)] Pull failed"
+          git pull --ff-only && echo "[$$(date)] Pulled OK" || echo "[$$(date)] Pull failed"
           sleep 300
         done
     restart: unless-stopped
