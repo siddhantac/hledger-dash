@@ -1,0 +1,1073 @@
+commodity USD
+    format 1,000.00 USD
+
+commodity BTC
+    format 1,000.00000000 BTC
+
+~ monthly from 2024-01-01
+    expenses:rent               2000.00 USD
+    expenses:food                600.00 USD
+    expenses:transport           150.00 USD
+    expenses:utilities           120.00 USD
+    expenses:entertainment        80.00 USD
+    assets:checking
+
+2024-01-01 * Opening Balances
+    assets:checking              10000.00 USD
+    assets:savings                 5000.00 USD
+    assets:investment:brokerage    2000.00 USD
+    liabilities:creditcard         -500.00 USD
+    equity:opening balances
+
+2024-01-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2024-01-05 * Freelance Client Invoice
+    assets:checking               800.00 USD
+    income:freelance             -800.00 USD
+
+2024-01-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2024-01-07 * Groceries
+    expenses:food                 420.00 USD
+    liabilities:creditcard        -420.00 USD
+
+2024-01-10 * Transit Pass
+    expenses:transport            140.00 USD
+    liabilities:creditcard        -140.00 USD
+
+2024-01-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2024-01-18 * Dining & Movies
+    expenses:entertainment        60.00 USD
+    liabilities:creditcard        -60.00 USD
+
+2024-01-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2024-01-25 * Brokerage Contribution
+    assets:investment:brokerage   500.00 USD
+    assets:checking              -500.00 USD
+
+2024-02-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2024-02-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2024-02-07 * Groceries
+    expenses:food                 480.00 USD
+    liabilities:creditcard        -480.00 USD
+
+2024-02-10 * Transit Pass
+    expenses:transport            150.00 USD
+    liabilities:creditcard        -150.00 USD
+
+2024-02-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2024-02-18 * Dining & Movies
+    expenses:entertainment        90.00 USD
+    liabilities:creditcard        -90.00 USD
+
+2024-02-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2024-02-25 * Crypto Purchase
+    assets:investment:crypto      0.01000000 BTC @ 50000.00 USD
+    assets:checking              -500.00 USD
+
+2024-03-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2024-03-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2024-03-07 * Groceries
+    expenses:food                 510.00 USD
+    liabilities:creditcard        -510.00 USD
+
+2024-03-10 * Transit Pass
+    expenses:transport            160.00 USD
+    liabilities:creditcard        -160.00 USD
+
+2024-03-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2024-03-18 * Dining & Movies
+    expenses:entertainment        80.00 USD
+    liabilities:creditcard        -80.00 USD
+
+2024-03-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2024-03-25 * Brokerage Contribution
+    assets:investment:brokerage   500.00 USD
+    assets:checking              -500.00 USD
+
+2024-04-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2024-04-05 * Freelance Client Invoice
+    assets:checking               800.00 USD
+    income:freelance             -800.00 USD
+
+2024-04-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2024-04-07 * Groceries
+    expenses:food                 550.00 USD
+    liabilities:creditcard        -550.00 USD
+
+2024-04-10 * Transit Pass
+    expenses:transport            145.00 USD
+    liabilities:creditcard        -145.00 USD
+
+2024-04-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2024-04-18 * Dining & Movies
+    expenses:entertainment        110.00 USD
+    liabilities:creditcard        -110.00 USD
+
+2024-04-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2024-04-25 * Crypto Purchase
+    assets:investment:crypto      0.01000000 BTC @ 50000.00 USD
+    assets:checking              -500.00 USD
+
+2024-05-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2024-05-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2024-05-07 * Groceries
+    expenses:food                 460.00 USD
+    liabilities:creditcard        -460.00 USD
+
+2024-05-10 * Transit Pass
+    expenses:transport            140.00 USD
+    liabilities:creditcard        -140.00 USD
+
+2024-05-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2024-05-18 * Dining & Movies
+    expenses:entertainment        70.00 USD
+    liabilities:creditcard        -70.00 USD
+
+2024-05-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2024-05-25 * Brokerage Contribution
+    assets:investment:brokerage   500.00 USD
+    assets:checking              -500.00 USD
+
+2024-06-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2024-06-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2024-06-07 * Groceries
+    expenses:food                 600.00 USD
+    liabilities:creditcard        -600.00 USD
+
+2024-06-10 * Transit Pass
+    expenses:transport            150.00 USD
+    liabilities:creditcard        -150.00 USD
+
+2024-06-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2024-06-18 * Dining & Movies
+    expenses:entertainment        60.00 USD
+    liabilities:creditcard        -60.00 USD
+
+2024-06-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2024-06-25 * Crypto Purchase
+    assets:investment:crypto      0.01000000 BTC @ 50000.00 USD
+    assets:checking              -500.00 USD
+
+2024-07-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2024-07-05 * Freelance Client Invoice
+    assets:checking               800.00 USD
+    income:freelance             -800.00 USD
+
+2024-07-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2024-07-07 * Groceries
+    expenses:food                 420.00 USD
+    liabilities:creditcard        -420.00 USD
+
+2024-07-10 * Transit Pass
+    expenses:transport            160.00 USD
+    liabilities:creditcard        -160.00 USD
+
+2024-07-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2024-07-18 * Dining & Movies
+    expenses:entertainment        90.00 USD
+    liabilities:creditcard        -90.00 USD
+
+2024-07-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2024-07-25 * Brokerage Contribution
+    assets:investment:brokerage   500.00 USD
+    assets:checking              -500.00 USD
+
+2024-08-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2024-08-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2024-08-07 * Groceries
+    expenses:food                 480.00 USD
+    liabilities:creditcard        -480.00 USD
+
+2024-08-10 * Transit Pass
+    expenses:transport            145.00 USD
+    liabilities:creditcard        -145.00 USD
+
+2024-08-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2024-08-18 * Dining & Movies
+    expenses:entertainment        80.00 USD
+    liabilities:creditcard        -80.00 USD
+
+2024-08-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2024-08-25 * Crypto Purchase
+    assets:investment:crypto      0.01000000 BTC @ 50000.00 USD
+    assets:checking              -500.00 USD
+
+2024-09-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2024-09-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2024-09-07 * Groceries
+    expenses:food                 510.00 USD
+    liabilities:creditcard        -510.00 USD
+
+2024-09-10 * Transit Pass
+    expenses:transport            140.00 USD
+    liabilities:creditcard        -140.00 USD
+
+2024-09-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2024-09-18 * Dining & Movies
+    expenses:entertainment        110.00 USD
+    liabilities:creditcard        -110.00 USD
+
+2024-09-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2024-09-25 * Brokerage Contribution
+    assets:investment:brokerage   500.00 USD
+    assets:checking              -500.00 USD
+
+2024-10-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2024-10-05 * Freelance Client Invoice
+    assets:checking               800.00 USD
+    income:freelance             -800.00 USD
+
+2024-10-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2024-10-07 * Groceries
+    expenses:food                 550.00 USD
+    liabilities:creditcard        -550.00 USD
+
+2024-10-10 * Transit Pass
+    expenses:transport            150.00 USD
+    liabilities:creditcard        -150.00 USD
+
+2024-10-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2024-10-18 * Dining & Movies
+    expenses:entertainment        70.00 USD
+    liabilities:creditcard        -70.00 USD
+
+2024-10-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2024-10-25 * Crypto Purchase
+    assets:investment:crypto      0.01000000 BTC @ 50000.00 USD
+    assets:checking              -500.00 USD
+
+2024-11-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2024-11-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2024-11-07 * Groceries
+    expenses:food                 460.00 USD
+    liabilities:creditcard        -460.00 USD
+
+2024-11-10 * Transit Pass
+    expenses:transport            160.00 USD
+    liabilities:creditcard        -160.00 USD
+
+2024-11-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2024-11-18 * Dining & Movies
+    expenses:entertainment        60.00 USD
+    liabilities:creditcard        -60.00 USD
+
+2024-11-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2024-11-25 * Brokerage Contribution
+    assets:investment:brokerage   500.00 USD
+    assets:checking              -500.00 USD
+
+2024-12-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2024-12-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2024-12-07 * Groceries
+    expenses:food                 600.00 USD
+    liabilities:creditcard        -600.00 USD
+
+2024-12-10 * Transit Pass
+    expenses:transport            145.00 USD
+    liabilities:creditcard        -145.00 USD
+
+2024-12-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2024-12-18 * Dining & Movies
+    expenses:entertainment        90.00 USD
+    liabilities:creditcard        -90.00 USD
+
+2024-12-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2024-12-25 * Crypto Purchase
+    assets:investment:crypto      0.01000000 BTC @ 50000.00 USD
+    assets:checking              -500.00 USD
+
+2024-12-24 * Holiday Bonus
+    assets:checking               1000.00 USD
+    income:salary                -1000.00 USD
+
+2025-01-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2025-01-05 * Freelance Client Invoice
+    assets:checking               800.00 USD
+    income:freelance             -800.00 USD
+
+2025-01-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2025-01-07 * Groceries
+    expenses:food                 420.00 USD
+    liabilities:creditcard        -420.00 USD
+
+2025-01-10 * Transit Pass
+    expenses:transport            140.00 USD
+    liabilities:creditcard        -140.00 USD
+
+2025-01-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2025-01-18 * Dining & Movies
+    expenses:entertainment        80.00 USD
+    liabilities:creditcard        -80.00 USD
+
+2025-01-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2025-01-25 * Brokerage Contribution
+    assets:investment:brokerage   500.00 USD
+    assets:checking              -500.00 USD
+
+2025-02-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2025-02-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2025-02-07 * Groceries
+    expenses:food                 480.00 USD
+    liabilities:creditcard        -480.00 USD
+
+2025-02-10 * Transit Pass
+    expenses:transport            150.00 USD
+    liabilities:creditcard        -150.00 USD
+
+2025-02-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2025-02-18 * Dining & Movies
+    expenses:entertainment        110.00 USD
+    liabilities:creditcard        -110.00 USD
+
+2025-02-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2025-02-25 * Crypto Purchase
+    assets:investment:crypto      0.01000000 BTC @ 50000.00 USD
+    assets:checking              -500.00 USD
+
+2025-03-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2025-03-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2025-03-07 * Groceries
+    expenses:food                 510.00 USD
+    liabilities:creditcard        -510.00 USD
+
+2025-03-10 * Transit Pass
+    expenses:transport            160.00 USD
+    liabilities:creditcard        -160.00 USD
+
+2025-03-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2025-03-18 * Dining & Movies
+    expenses:entertainment        70.00 USD
+    liabilities:creditcard        -70.00 USD
+
+2025-03-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2025-03-25 * Brokerage Contribution
+    assets:investment:brokerage   500.00 USD
+    assets:checking              -500.00 USD
+
+2025-04-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2025-04-05 * Freelance Client Invoice
+    assets:checking               800.00 USD
+    income:freelance             -800.00 USD
+
+2025-04-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2025-04-07 * Groceries
+    expenses:food                 550.00 USD
+    liabilities:creditcard        -550.00 USD
+
+2025-04-10 * Transit Pass
+    expenses:transport            145.00 USD
+    liabilities:creditcard        -145.00 USD
+
+2025-04-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2025-04-18 * Dining & Movies
+    expenses:entertainment        60.00 USD
+    liabilities:creditcard        -60.00 USD
+
+2025-04-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2025-04-25 * Crypto Purchase
+    assets:investment:crypto      0.01000000 BTC @ 50000.00 USD
+    assets:checking              -500.00 USD
+
+2025-05-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2025-05-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2025-05-07 * Groceries
+    expenses:food                 460.00 USD
+    liabilities:creditcard        -460.00 USD
+
+2025-05-10 * Transit Pass
+    expenses:transport            140.00 USD
+    liabilities:creditcard        -140.00 USD
+
+2025-05-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2025-05-18 * Dining & Movies
+    expenses:entertainment        90.00 USD
+    liabilities:creditcard        -90.00 USD
+
+2025-05-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2025-05-25 * Brokerage Contribution
+    assets:investment:brokerage   500.00 USD
+    assets:checking              -500.00 USD
+
+2025-06-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2025-06-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2025-06-07 * Groceries
+    expenses:food                 600.00 USD
+    liabilities:creditcard        -600.00 USD
+
+2025-06-10 * Transit Pass
+    expenses:transport            150.00 USD
+    liabilities:creditcard        -150.00 USD
+
+2025-06-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2025-06-18 * Dining & Movies
+    expenses:entertainment        80.00 USD
+    liabilities:creditcard        -80.00 USD
+
+2025-06-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2025-06-25 * Crypto Purchase
+    assets:investment:crypto      0.01000000 BTC @ 50000.00 USD
+    assets:checking              -500.00 USD
+
+2025-07-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2025-07-05 * Freelance Client Invoice
+    assets:checking               800.00 USD
+    income:freelance             -800.00 USD
+
+2025-07-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2025-07-07 * Groceries
+    expenses:food                 420.00 USD
+    liabilities:creditcard        -420.00 USD
+
+2025-07-10 * Transit Pass
+    expenses:transport            160.00 USD
+    liabilities:creditcard        -160.00 USD
+
+2025-07-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2025-07-18 * Dining & Movies
+    expenses:entertainment        110.00 USD
+    liabilities:creditcard        -110.00 USD
+
+2025-07-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2025-07-25 * Brokerage Contribution
+    assets:investment:brokerage   500.00 USD
+    assets:checking              -500.00 USD
+
+2025-08-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2025-08-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2025-08-07 * Groceries
+    expenses:food                 480.00 USD
+    liabilities:creditcard        -480.00 USD
+
+2025-08-10 * Transit Pass
+    expenses:transport            145.00 USD
+    liabilities:creditcard        -145.00 USD
+
+2025-08-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2025-08-18 * Dining & Movies
+    expenses:entertainment        70.00 USD
+    liabilities:creditcard        -70.00 USD
+
+2025-08-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2025-08-25 * Crypto Purchase
+    assets:investment:crypto      0.01000000 BTC @ 50000.00 USD
+    assets:checking              -500.00 USD
+
+2025-09-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2025-09-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2025-09-07 * Groceries
+    expenses:food                 510.00 USD
+    liabilities:creditcard        -510.00 USD
+
+2025-09-10 * Transit Pass
+    expenses:transport            140.00 USD
+    liabilities:creditcard        -140.00 USD
+
+2025-09-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2025-09-18 * Dining & Movies
+    expenses:entertainment        60.00 USD
+    liabilities:creditcard        -60.00 USD
+
+2025-09-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2025-09-25 * Brokerage Contribution
+    assets:investment:brokerage   500.00 USD
+    assets:checking              -500.00 USD
+
+2025-10-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2025-10-05 * Freelance Client Invoice
+    assets:checking               800.00 USD
+    income:freelance             -800.00 USD
+
+2025-10-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2025-10-07 * Groceries
+    expenses:food                 550.00 USD
+    liabilities:creditcard        -550.00 USD
+
+2025-10-10 * Transit Pass
+    expenses:transport            150.00 USD
+    liabilities:creditcard        -150.00 USD
+
+2025-10-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2025-10-18 * Dining & Movies
+    expenses:entertainment        90.00 USD
+    liabilities:creditcard        -90.00 USD
+
+2025-10-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2025-10-25 * Crypto Purchase
+    assets:investment:crypto      0.01000000 BTC @ 50000.00 USD
+    assets:checking              -500.00 USD
+
+2025-11-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2025-11-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2025-11-07 * Groceries
+    expenses:food                 460.00 USD
+    liabilities:creditcard        -460.00 USD
+
+2025-11-10 * Transit Pass
+    expenses:transport            160.00 USD
+    liabilities:creditcard        -160.00 USD
+
+2025-11-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2025-11-18 * Dining & Movies
+    expenses:entertainment        80.00 USD
+    liabilities:creditcard        -80.00 USD
+
+2025-11-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2025-11-25 * Brokerage Contribution
+    assets:investment:brokerage   500.00 USD
+    assets:checking              -500.00 USD
+
+2025-12-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2025-12-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2025-12-07 * Groceries
+    expenses:food                 600.00 USD
+    liabilities:creditcard        -600.00 USD
+
+2025-12-10 * Transit Pass
+    expenses:transport            145.00 USD
+    liabilities:creditcard        -145.00 USD
+
+2025-12-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2025-12-18 * Dining & Movies
+    expenses:entertainment        110.00 USD
+    liabilities:creditcard        -110.00 USD
+
+2025-12-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2025-12-25 * Crypto Purchase
+    assets:investment:crypto      0.01000000 BTC @ 50000.00 USD
+    assets:checking              -500.00 USD
+
+2025-12-24 * Holiday Bonus
+    assets:checking               1000.00 USD
+    income:salary                -1000.00 USD
+
+2026-01-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2026-01-05 * Freelance Client Invoice
+    assets:checking               800.00 USD
+    income:freelance             -800.00 USD
+
+2026-01-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2026-01-07 * Groceries
+    expenses:food                 420.00 USD
+    liabilities:creditcard        -420.00 USD
+
+2026-01-10 * Transit Pass
+    expenses:transport            140.00 USD
+    liabilities:creditcard        -140.00 USD
+
+2026-01-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2026-01-18 * Dining & Movies
+    expenses:entertainment        70.00 USD
+    liabilities:creditcard        -70.00 USD
+
+2026-01-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2026-01-25 * Brokerage Contribution
+    assets:investment:brokerage   500.00 USD
+    assets:checking              -500.00 USD
+
+2026-02-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2026-02-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2026-02-07 * Groceries
+    expenses:food                 480.00 USD
+    liabilities:creditcard        -480.00 USD
+
+2026-02-10 * Transit Pass
+    expenses:transport            150.00 USD
+    liabilities:creditcard        -150.00 USD
+
+2026-02-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2026-02-18 * Dining & Movies
+    expenses:entertainment        60.00 USD
+    liabilities:creditcard        -60.00 USD
+
+2026-02-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2026-02-25 * Crypto Purchase
+    assets:investment:crypto      0.01000000 BTC @ 50000.00 USD
+    assets:checking              -500.00 USD
+
+2026-03-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2026-03-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2026-03-07 * Groceries
+    expenses:food                 510.00 USD
+    liabilities:creditcard        -510.00 USD
+
+2026-03-10 * Transit Pass
+    expenses:transport            160.00 USD
+    liabilities:creditcard        -160.00 USD
+
+2026-03-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2026-03-18 * Dining & Movies
+    expenses:entertainment        90.00 USD
+    liabilities:creditcard        -90.00 USD
+
+2026-03-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2026-03-25 * Brokerage Contribution
+    assets:investment:brokerage   500.00 USD
+    assets:checking              -500.00 USD
+
+2026-04-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2026-04-05 * Freelance Client Invoice
+    assets:checking               800.00 USD
+    income:freelance             -800.00 USD
+
+2026-04-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2026-04-07 * Groceries
+    expenses:food                 550.00 USD
+    liabilities:creditcard        -550.00 USD
+
+2026-04-10 * Transit Pass
+    expenses:transport            145.00 USD
+    liabilities:creditcard        -145.00 USD
+
+2026-04-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2026-04-18 * Dining & Movies
+    expenses:entertainment        80.00 USD
+    liabilities:creditcard        -80.00 USD
+
+2026-04-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2026-04-25 * Crypto Purchase
+    assets:investment:crypto      0.01000000 BTC @ 50000.00 USD
+    assets:checking              -500.00 USD
+
+2026-05-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2026-05-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2026-05-07 * Groceries
+    expenses:food                 460.00 USD
+    liabilities:creditcard        -460.00 USD
+
+2026-05-10 * Transit Pass
+    expenses:transport            140.00 USD
+    liabilities:creditcard        -140.00 USD
+
+2026-05-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2026-05-18 * Dining & Movies
+    expenses:entertainment        110.00 USD
+    liabilities:creditcard        -110.00 USD
+
+2026-05-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2026-05-25 * Brokerage Contribution
+    assets:investment:brokerage   500.00 USD
+    assets:checking              -500.00 USD
+
+2026-06-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2026-06-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2026-06-07 * Groceries
+    expenses:food                 600.00 USD
+    liabilities:creditcard        -600.00 USD
+
+2026-06-10 * Transit Pass
+    expenses:transport            150.00 USD
+    liabilities:creditcard        -150.00 USD
+
+2026-06-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2026-06-18 * Dining & Movies
+    expenses:entertainment        70.00 USD
+    liabilities:creditcard        -70.00 USD
+
+2026-06-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2026-06-25 * Crypto Purchase
+    assets:investment:crypto      0.01000000 BTC @ 50000.00 USD
+    assets:checking              -500.00 USD
+
+2026-07-01 * Employer Payroll
+    assets:checking              5000.00 USD
+    income:salary                -5000.00 USD
+
+2026-07-05 * Freelance Client Invoice
+    assets:checking               800.00 USD
+    income:freelance             -800.00 USD
+
+2026-07-03 * Rent Payment
+    expenses:rent                2000.00 USD
+    assets:checking              -2000.00 USD
+
+2026-07-07 * Groceries
+    expenses:food                 420.00 USD
+    liabilities:creditcard        -420.00 USD
+
+2026-07-10 * Transit Pass
+    expenses:transport            160.00 USD
+    liabilities:creditcard        -160.00 USD
+
+2026-07-12 * Electricity & Water
+    expenses:utilities            120.00 USD
+    assets:checking               -120.00 USD
+
+2026-07-18 * Dining & Movies
+    expenses:entertainment        60.00 USD
+    liabilities:creditcard        -60.00 USD
+
+2026-07-20 * Credit Card Payment
+    liabilities:creditcard        700.00 USD
+    assets:checking               -700.00 USD
+
+2026-07-25 * Brokerage Contribution
+    assets:investment:brokerage   500.00 USD
+    assets:checking              -500.00 USD
+
+2025-06-15 * Stock Sale Windfall
+    assets:checking              1200000.00 USD
+    income:investment_gains     -1200000.00 USD
+
+2025-06-16 * Move Windfall to Savings
+    assets:savings                1150000.00 USD
+    assets:checking              -1150000.00 USD
+

@@ -5,6 +5,8 @@ import os
 import subprocess
 from datetime import date
 
+from app.services.query import Measure, Query, by_account, by_period, pivot
+
 logger = logging.getLogger(__name__)
 
 
@@ -53,24 +55,12 @@ def _parse_single_amount(s: str) -> float:
     return 0.0
 
 
-def _amount_to_float(amount_str: str) -> float:
-    """
-    Parse an hledger amount string to float.
-    Multi-commodity totals are separated by ', ' (comma-space); for those we
-    return the component with the largest absolute value, which is the primary
-    currency when crypto/foreign amounts are tiny relative to the main currency.
-    """
-    amount_str = amount_str.strip()
-    if not amount_str:
-        return 0.0
-    if ", " in amount_str:
-        best = 0.0
-        for part in amount_str.split(", "):
-            val = _parse_single_amount(part)
-            if abs(val) > abs(best):
-                best = val
-        return best
-    return _parse_single_amount(amount_str)
+def _run_query(q: Query) -> list[dict]:
+    return _parse_csv(run_hledger(*q.argv()))
+
+
+def _short_name(account: str) -> str:
+    return account.split(":")[-1] if ":" in account else account
 
 
 def months_in_range(date_from: str, date_to: str) -> list[str]:
@@ -111,136 +101,81 @@ def get_expense_category_history(date_from: str, date_to: str, depth: int = 2) -
     Returns {short_category_name: {YYYY-MM: amount}}.
     One hledger call; caller derives heat map, quarterly rollup, and trend from this.
     """
-    output = run_hledger(
-        "balance", "expenses",
-        "--monthly", "--output-format", "csv", "--no-total",
-        "--depth", str(depth),
-        "--period", _period_arg(date_from, date_to),
-    )
-    rows = _parse_csv(output)
+    rows = _run_query(Query(
+        accounts="expenses", measure=Measure.FLOW,
+        date_from=date_from, date_to=date_to, depth=depth, monthly=True,
+    ))
+    by_full_account = pivot(rows)
     result: dict[str, dict[str, float]] = {}
-    for row in rows:
-        account = row.get("account", "").strip()
-        if not account:
-            continue
-        short = account.split(":")[-1] if ":" in account else account
-        monthly: dict[str, float] = {}
-        for key, val in row.items():
-            if key == "account":
-                continue
-            if len(key) == 7 and key[4] == "-":
-                monthly[key] = abs(_amount_to_float(val))
+    for account, monthly in by_full_account.items():
+        monthly = {m: abs(v) for m, v in monthly.items()}
         if any(v > 0 for v in monthly.values()):
-            result[short] = monthly
+            result[_short_name(account)] = monthly
     return result
 
 
 def get_monthly_expense_totals(date_from: str, date_to: str) -> dict[str, float]:
     """Monthly expense totals: {YYYY-MM: float}."""
-    output = run_hledger(
-        "balance", "expenses",
-        "--monthly", "--output-format", "csv",
-        "--no-total", "--period", _period_arg(date_from, date_to),
-    )
-    rows = _parse_csv(output)
+    rows = _run_query(Query(
+        accounts="expenses", measure=Measure.FLOW,
+        date_from=date_from, date_to=date_to, monthly=True,
+    ))
     months = months_in_range(date_from, date_to)
-    totals: dict[str, float] = {m: 0.0 for m in months}
-    for row in rows:
-        for key, val in row.items():
-            if key == "account":
-                continue
-            if len(key) == 7 and key[4] == "-":
-                totals[key] = totals.get(key, 0.0) + abs(_amount_to_float(val))
-    return totals
+    period_totals = by_period(rows, Measure.FLOW)
+    return {m: abs(period_totals.get(m, 0.0)) for m in months}
 
 
 def get_expense_breakdown(date_from: str, date_to: str, depth: int = 2) -> list[dict]:
     """Expense totals by category: [{account, full_account, amount}] sorted desc."""
-    output = run_hledger(
-        "balance", "expenses",
-        "--output-format", "csv",
-        "--no-total", "--depth", str(depth),
-        "--period", _period_arg(date_from, date_to),
-    )
-    rows = _parse_csv(output)
+    rows = _run_query(Query(
+        accounts="expenses", measure=Measure.FLOW,
+        date_from=date_from, date_to=date_to, depth=depth,
+    ))
     results = []
-    for row in rows:
-        account = row.get("account", "").strip()
-        amount = abs(_amount_to_float(row.get("balance", "0")))
+    for account, amount in by_account(rows, Measure.FLOW).items():
+        amount = abs(amount)
         if account and amount > 0:
-            short = account.split(":")[-1] if ":" in account else account
-            results.append({"account": short, "full_account": account, "amount": amount})
+            results.append({"account": _short_name(account), "full_account": account, "amount": amount})
     results.sort(key=lambda x: x["amount"], reverse=True)
     return results
 
 
 def get_expense_total(date_from: str, date_to: str) -> float:
-    output = run_hledger(
-        "balance", "expenses",
-        "--output-format", "csv",
-        "--period", _period_arg(date_from, date_to),
-    )
-    rows = _parse_csv(output)
-    for row in reversed(rows):
-        amt = _amount_to_float(row.get("balance", "0"))
-        if amt != 0:
-            return abs(amt)
-    return 0.0
+    rows = _run_query(Query(accounts="expenses", measure=Measure.FLOW, date_from=date_from, date_to=date_to))
+    return abs(sum(by_account(rows, Measure.FLOW).values()))
 
 
 # ── Income ─────────────────────────────────────────────────────────────────
 
 def get_monthly_income_totals(date_from: str, date_to: str) -> dict[str, float]:
     """Monthly income totals: {YYYY-MM: float}."""
-    output = run_hledger(
-        "balance", "income",
-        "--monthly", "--output-format", "csv",
-        "--no-total", "--period", _period_arg(date_from, date_to),
-    )
-    rows = _parse_csv(output)
+    rows = _run_query(Query(
+        accounts="income", measure=Measure.FLOW,
+        date_from=date_from, date_to=date_to, monthly=True,
+    ))
     months = months_in_range(date_from, date_to)
-    totals: dict[str, float] = {m: 0.0 for m in months}
-    for row in rows:
-        for key, val in row.items():
-            if key == "account":
-                continue
-            if len(key) == 7 and key[4] == "-":
-                totals[key] = totals.get(key, 0.0) + abs(_amount_to_float(val))
-    return totals
+    period_totals = by_period(rows, Measure.FLOW)
+    return {m: abs(period_totals.get(m, 0.0)) for m in months}
 
 
 def get_income_breakdown(date_from: str, date_to: str, depth: int = 2) -> list[dict]:
     """Income totals by source: [{account, full_account, amount}] sorted desc."""
-    output = run_hledger(
-        "balance", "income",
-        "--output-format", "csv",
-        "--no-total", "--depth", str(depth),
-        "--period", _period_arg(date_from, date_to),
-    )
-    rows = _parse_csv(output)
+    rows = _run_query(Query(
+        accounts="income", measure=Measure.FLOW,
+        date_from=date_from, date_to=date_to, depth=depth,
+    ))
     results = []
-    for row in rows:
-        account = row.get("account", "").strip()
-        amount = abs(_amount_to_float(row.get("balance", "0")))
+    for account, amount in by_account(rows, Measure.FLOW).items():
+        amount = abs(amount)
         if account and amount > 0:
-            short = account.split(":")[-1] if ":" in account else account
-            results.append({"account": short, "full_account": account, "amount": amount})
+            results.append({"account": _short_name(account), "full_account": account, "amount": amount})
     results.sort(key=lambda x: x["amount"], reverse=True)
     return results
 
 
 def get_income_total(date_from: str, date_to: str) -> float:
-    output = run_hledger(
-        "balance", "income",
-        "--output-format", "csv",
-        "--period", _period_arg(date_from, date_to),
-    )
-    rows = _parse_csv(output)
-    for row in reversed(rows):
-        amt = _amount_to_float(row.get("balance", "0"))
-        if amt != 0:
-            return abs(amt)
-    return 0.0
+    rows = _run_query(Query(accounts="income", measure=Measure.FLOW, date_from=date_from, date_to=date_to))
+    return abs(sum(by_account(rows, Measure.FLOW).values()))
 
 
 def get_summary(date_from: str, date_to: str) -> dict:
@@ -257,29 +192,20 @@ def get_summary(date_from: str, date_to: str) -> dict:
 def get_net_worth_history(date_from: str, date_to: str) -> list[dict]:
     """
     Monthly net worth snapshots: [{month, assets, liabilities, net_worth}].
-    Uses --historical so each month reflects the true cumulative balance.
+    STOCK measure (--historical) means each month reflects the true cumulative balance.
     """
     months = months_in_range(date_from, date_to)
 
-    def _monthly_totals(account: str) -> dict[str, float]:
-        output = run_hledger(
-            "balance", account,
-            "--monthly", "--historical",
-            "--output-format", "csv", "--no-total",
-            "--period", _period_arg(date_from, date_to),
-        )
-        rows = _parse_csv(output)
-        totals: dict[str, float] = {m: 0.0 for m in months}
-        for row in rows:
-            for key, val in row.items():
-                if key == "account":
-                    continue
-                if len(key) == 7 and key[4] == "-":
-                    totals[key] = totals.get(key, 0.0) + _amount_to_float(val)
-        return totals
-
-    asset_totals = _monthly_totals("assets")
-    liability_totals = _monthly_totals("liabilities")
+    asset_rows = _run_query(Query(
+        accounts="assets", measure=Measure.STOCK,
+        date_from=date_from, date_to=date_to, monthly=True,
+    ))
+    liability_rows = _run_query(Query(
+        accounts="liabilities", measure=Measure.STOCK,
+        date_from=date_from, date_to=date_to, monthly=True,
+    ))
+    asset_totals = by_period(asset_rows, Measure.STOCK)
+    liability_totals = by_period(liability_rows, Measure.STOCK)
 
     result = []
     for m in months:
@@ -299,20 +225,9 @@ def get_net_worth_snapshot(as_of_month: str) -> dict:
     Current net worth breakdown: {liquid, invested, liabilities, net_worth}.
     Balances are as of end of as_of_month (YYYY-MM).
     """
-    end = _next_month(as_of_month)
-
-    def _total(account: str) -> float:
-        output = run_hledger(
-            "balance", account,
-            "--end", end,
-            "--output-format", "csv",
-        )
-        rows = _parse_csv(output)
-        for row in reversed(rows):
-            amt = _amount_to_float(row.get("balance", "0"))
-            if amt != 0:
-                return amt
-        return 0.0
+    def _total(accounts: str) -> float:
+        rows = _run_query(Query(accounts=accounts, measure=Measure.STOCK, date_to=as_of_month))
+        return sum(by_account(rows, Measure.STOCK).values())
 
     total_assets = _total("assets")
     invested = _total("assets:investment")
@@ -336,6 +251,9 @@ def get_transactions(date_from: str, date_to: str) -> list[dict]:
       negative posting = FROM (money source), positive posting = TO (destination).
     Returns [{date, description, from_account, to_account, amount, kind}] most-recent first.
     kind is 'expense' | 'income' | 'transfer'.
+
+    hledger print doesn't support --layout=tidy, so this keeps its own parser
+    (out of scope for the Query rewrite — see PLAN.md Phase 1.5).
     """
     output = run_hledger(
         "print", "--output-format", "csv",
@@ -447,6 +365,9 @@ def get_account_list() -> dict[str, list[str]]:
 def get_account_register(account: str, date_from: str, date_to: str) -> list[dict]:
     """Bank-statement view for one account, most-recent first.
     Returns [{date, description, amount_val, amount, balance}].
+
+    hledger register doesn't support --layout=tidy, so this keeps its own
+    parser (out of scope for the Query rewrite — see PLAN.md Phase 1.5).
     """
     output = run_hledger(
         "register", account,
@@ -458,7 +379,7 @@ def get_account_register(account: str, date_from: str, date_to: str) -> list[dic
     for row in rows:
         amt_str = row.get("amount", "0").strip()
         bal_str = row.get("total", "0").strip()
-        amt_val = _amount_to_float(amt_str)
+        amt_val = _parse_single_amount(amt_str)
         result.append({
             "date":        row.get("date", "").strip(),
             "description": row.get("description", "").strip(),
@@ -474,20 +395,14 @@ def get_account_register(account: str, date_from: str, date_to: str) -> list[dic
 
 def get_investment_breakdown(as_of_month: str) -> list[dict]:
     """Current balance by assets:investment sub-account (depth 3)."""
-    end = _next_month(as_of_month)
-    output = run_hledger(
-        "balance", "assets:investment",
-        "--end", end, "--depth", "3",
-        "--output-format", "csv", "--no-total",
-    )
-    rows = _parse_csv(output)
+    rows = _run_query(Query(
+        accounts="assets:investment", measure=Measure.STOCK,
+        date_to=as_of_month, depth=3,
+    ))
     results = []
-    for row in rows:
-        account = row.get("account", "").strip()
-        amount = _amount_to_float(row.get("balance", "0"))
+    for account, amount in by_account(rows, Measure.STOCK).items():
         if account and amount > 0:
-            short = account.split(":")[-1] if ":" in account else account
-            results.append({"account": short, "full_account": account, "amount": amount})
+            results.append({"account": _short_name(account), "full_account": account, "amount": amount})
     results.sort(key=lambda x: x["amount"], reverse=True)
     return results
 
@@ -495,58 +410,38 @@ def get_investment_breakdown(as_of_month: str) -> list[dict]:
 def get_monthly_investment_total(date_from: str, date_to: str) -> dict[str, float]:
     """Monthly cumulative total of assets:investment: {YYYY-MM: float}."""
     months = months_in_range(date_from, date_to)
-    output = run_hledger(
-        "balance", "assets:investment",
-        "--monthly", "--historical",
-        "--output-format", "csv", "--no-total",
-        "--period", _period_arg(date_from, date_to),
-    )
-    rows = _parse_csv(output)
-    totals: dict[str, float] = {m: 0.0 for m in months}
-    for row in rows:
-        for key, val in row.items():
-            if key == "account":
-                continue
-            if len(key) == 7 and key[4] == "-":
-                totals[key] = totals.get(key, 0.0) + _amount_to_float(val)
-    return totals
+    rows = _run_query(Query(
+        accounts="assets:investment", measure=Measure.STOCK,
+        date_from=date_from, date_to=date_to, monthly=True,
+    ))
+    period_totals = by_period(rows, Measure.STOCK)
+    return {m: period_totals.get(m, 0.0) for m in months}
 
 
 def get_asset_breakdown(as_of_month: str) -> list[dict]:
     """Depth-2 asset breakdown as of end of given month."""
-    end = _next_month(as_of_month)
-    output = run_hledger(
-        "balance", "assets",
-        "--end", end, "--depth", "2",
-        "--output-format", "csv", "--no-total",
-    )
-    rows = _parse_csv(output)
+    rows = _run_query(Query(
+        accounts="assets", measure=Measure.STOCK,
+        date_to=as_of_month, depth=2,
+    ))
     results = []
-    for row in rows:
-        account = row.get("account", "").strip()
-        amount = _amount_to_float(row.get("balance", "0"))
+    for account, amount in by_account(rows, Measure.STOCK).items():
         if account and amount > 0:
-            short = account.split(":")[-1] if ":" in account else account
-            results.append({"account": short, "full_account": account, "amount": amount})
+            results.append({"account": _short_name(account), "full_account": account, "amount": amount})
     results.sort(key=lambda x: x["amount"], reverse=True)
     return results
 
 
 def get_liability_breakdown(as_of_month: str) -> list[dict]:
     """Credit card balance breakdown as of end of given month."""
-    end = _next_month(as_of_month)
-    output = run_hledger(
-        "balance", "liabilities",
-        "--end", end, "--depth", "2",
-        "--output-format", "csv", "--no-total",
-    )
-    rows = _parse_csv(output)
+    rows = _run_query(Query(
+        accounts="liabilities", measure=Measure.STOCK,
+        date_to=as_of_month, depth=2,
+    ))
     results = []
-    for row in rows:
-        account = row.get("account", "").strip()
-        amount = abs(_amount_to_float(row.get("balance", "0")))
+    for account, amount in by_account(rows, Measure.STOCK).items():
+        amount = abs(amount)
         if account and amount > 0:
-            short = account.split(":")[-1] if ":" in account else account
-            results.append({"account": short, "full_account": account, "amount": amount})
+            results.append({"account": _short_name(account), "full_account": account, "amount": amount})
     results.sort(key=lambda x: x["amount"], reverse=True)
     return results

@@ -5,18 +5,10 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
 from app._templates import templates
+from app.routers._filters import last_month
 from app.services import hledger as hl
 
 router = APIRouter()
-
-
-def _last_month(today: date) -> str:
-    m = today.month - 1
-    y = today.year
-    if m == 0:
-        m = 12
-        y -= 1
-    return f"{y}-{m:02d}"
 
 
 @router.get("/transactions", response_class=HTMLResponse)
@@ -26,9 +18,9 @@ async def transactions(
     date_to: Optional[str] = None,
 ):
     today = date.today()
-    last_month = _last_month(today)
-    date_from = date_from or last_month
-    date_to   = date_to   or last_month
+    last_month_val = last_month(today)
+    date_from = date_from or last_month_val
+    date_to   = date_to   or last_month_val
     if date_from > date_to:
         date_from, date_to = date_to, date_from
 

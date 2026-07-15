@@ -7,6 +7,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
 from app._templates import templates
+from app.routers._filters import last_12_from, last_month
 from app.services import hledger as hl
 
 router = APIRouter()
@@ -14,24 +15,6 @@ router = APIRouter()
 
 def _subtract_year(ym: str) -> str:
     return f"{int(ym[:4]) - 1}{ym[4:]}"
-
-
-def _last_month(today: date) -> str:
-    m = today.month - 1
-    y = today.year
-    if m == 0:
-        m = 12
-        y -= 1
-    return f"{y}-{m:02d}"
-
-
-def _last_12_from(today: date) -> str:
-    m = today.month - 11
-    y = today.year
-    if m <= 0:
-        m += 12
-        y -= 1
-    return f"{y}-{m:02d}"
 
 
 @router.get("/income", response_class=HTMLResponse)
@@ -49,8 +32,8 @@ async def income(
 
     yoy_from = _subtract_year(date_from)
     yoy_to   = _subtract_year(date_to)
-    last_month  = _last_month(today)
-    last12_from = _last_12_from(today)
+    last_month_val = last_month(today)
+    last12_from_val = last_12_from(today)
 
     error = None
     breakdown: list[dict] = []
@@ -77,7 +60,7 @@ async def income(
             f_breakdown = pool.submit(hl.get_income_breakdown, date_from, date_to)
             f_yoy       = pool.submit(hl.get_income_breakdown, yoy_from, yoy_to)
             f_inc_hist  = pool.submit(hl.get_monthly_income_totals, all_from, current_month)
-            f_exp_hist  = pool.submit(hl.get_monthly_expense_totals, last12_from, current_month)
+            f_exp_hist  = pool.submit(hl.get_monthly_expense_totals, last12_from_val, current_month)
 
             breakdown     = f_breakdown.result()
             yoy_breakdown = f_yoy.result()
@@ -98,7 +81,7 @@ async def income(
             yoy_pct_change = (total_income - yoy_total) / yoy_total * 100
 
         # Last month (derived from all-time history)
-        last_month_income = inc_hist.get(last_month, 0.0)
+        last_month_income = inc_hist.get(last_month_val, 0.0)
 
         # Source table with YoY delta
         yoy_map = {r["account"]: r["amount"] for r in yoy_breakdown}
@@ -122,7 +105,7 @@ async def income(
         trend_data   = [inc_hist.get(m, 0.0) for m in all_months]
 
         # Savings rate trend (last 12 months)
-        last12_months = hl.months_in_range(last12_from, current_month)
+        last12_months = hl.months_in_range(last12_from_val, current_month)
         savings_labels = [f"{month_abbr[int(m[5:7])]} {m[:4]}" for m in last12_months]
         savings_rate_data = [
             round((inc_hist.get(m, 0.0) - exp_hist.get(m, 0.0)) / inc_hist.get(m, 0.0) * 100, 1)
@@ -143,7 +126,7 @@ async def income(
         "yoy_total":          yoy_total,
         "yoy_pct_change":     yoy_pct_change,
         "last_month_income":  last_month_income,
-        "last_month":         last_month,
+        "last_month":         last_month_val,
         "pie_labels":         pie_labels,
         "pie_amounts":        pie_amounts,
         "table_rows":         table_rows,

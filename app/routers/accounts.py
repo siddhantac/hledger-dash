@@ -6,16 +6,10 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
 from app._templates import templates
+from app.routers._filters import last_month
 from app.services import hledger as hl
 
 router = APIRouter()
-
-
-def _last_month() -> str:
-    today = date.today()
-    m = today.month - 1 or 12
-    y = today.year if today.month > 1 else today.year - 1
-    return f"{y}-{m:02d}"
 
 
 @router.get("/accounts", response_class=HTMLResponse)
@@ -25,7 +19,7 @@ async def accounts_view(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
 ):
-    lm = _last_month()
+    lm = last_month(date.today())
     date_from = date_from or lm
     date_to   = date_to   or lm
     if date_from > date_to:

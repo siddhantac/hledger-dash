@@ -7,27 +7,10 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
 from app._templates import templates
+from app.routers._filters import last_12_from, last_month
 from app.services import hledger as hl
 
 router = APIRouter()
-
-
-def _last_12_from(today: date) -> str:
-    m = today.month - 11
-    y = today.year
-    if m <= 0:
-        m += 12
-        y -= 1
-    return f"{y}-{m:02d}"
-
-
-def _last_month(today: date) -> str:
-    m = today.month - 1
-    y = today.year
-    if m == 0:
-        m = 12
-        y -= 1
-    return f"{y}-{m:02d}"
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -44,8 +27,8 @@ async def dashboard(
         date_from, date_to = date_to, date_from
 
     ytd_from = f"{today.year}-01"
-    last12_from = _last_12_from(today)
-    last_month = _last_month(today)
+    last12_from = last_12_from(today)
+    last_month_val = last_month(today)
 
     error = None
     _empty = {"income": 0.0, "expenses": 0.0, "net": 0.0, "savings_rate": 0.0}
@@ -63,7 +46,7 @@ async def dashboard(
     try:
         with ThreadPoolExecutor(max_workers=8) as pool:
             f_period     = pool.submit(hl.get_summary, date_from, date_to)
-            f_lastmonth  = pool.submit(hl.get_summary, last_month, last_month)
+            f_lastmonth  = pool.submit(hl.get_summary, last_month_val, last_month_val)
             f_ytd        = pool.submit(hl.get_summary, ytd_from, current_month)
             f_trailing   = pool.submit(hl.get_summary, last12_from, current_month)
             f_networth   = pool.submit(hl.get_net_worth_snapshot, current_month)
@@ -101,7 +84,7 @@ async def dashboard(
         "date_to":            date_to,
         "period_summary":     period_summary,
         "last_month_summary":  last_month_summary,
-        "last_month":          last_month,
+        "last_month":          last_month_val,
         "ytd_summary":        ytd_summary,
         "trailing_summary":   trailing_summary,
         "net_worth":          net_worth,
