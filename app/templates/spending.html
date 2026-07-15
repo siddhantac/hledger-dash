@@ -24,7 +24,7 @@
   <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
     <div class="text-sm font-medium text-gray-400 mb-3">By Category</div>
     {% if pie_labels %}
-    <canvas id="spendingPie" height="220"></canvas>
+    <div id="spendingPie" style="height: 320px"></div>
     {% else %}
     <p class="text-gray-600 text-sm">No data for this period.</p>
     {% endif %}
@@ -76,7 +76,7 @@
 {% if trend_datasets %}
 <div class="bg-gray-900 rounded-lg p-4 border border-gray-800 mb-6">
   <div class="text-sm font-medium text-gray-400 mb-3">Top Category Trends (all time)</div>
-  <canvas id="trendChart" height="80"></canvas>
+  <div id="trendChart" style="height: 300px"></div>
 </div>
 {% endif %}
 

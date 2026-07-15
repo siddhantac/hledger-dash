@@ -1,84 +1,91 @@
-// Chart.js global defaults for dark theme
-Chart.defaults.color = '#9ca3af';
-Chart.defaults.borderColor = '#1f2937';
-Chart.defaults.backgroundColor = 'transparent';
-
+// ECharts dark theme, built from the same palette the Chart.js version used.
 const CHART_COLORS = [
   '#6366f1', '#22d3ee', '#f59e0b', '#10b981',
   '#f43f5e', '#a78bfa', '#34d399', '#fb923c',
   '#38bdf8', '#facc15', '#4ade80', '#f472b6',
 ];
 
-function pieChart(canvasId, labels, data) {
-  const ctx = document.getElementById(canvasId).getContext('2d');
-  return new Chart(ctx, {
-    type: 'pie',
-    data: {
-      labels,
-      datasets: [{
-        data,
-        backgroundColor: CHART_COLORS.slice(0, data.length),
-        borderWidth: 1,
-        borderColor: '#111827',
-      }]
-    },
-    options: {
-      plugins: {
-        legend: { position: 'right' }
-      }
-    }
-  });
+const AXIS_LINE = { lineStyle: { color: '#1f2937' } };
+const AXIS_LABEL = { color: '#9ca3af' };
+const SPLIT_LINE = { lineStyle: { color: '#1f2937' } };
+
+function _initChart(elId) {
+  const el = document.getElementById(elId);
+  const chart = echarts.init(el);
+  window.addEventListener('resize', () => chart.resize());
+  return chart;
 }
 
-function barChart(canvasId, labels, datasets) {
-  const ctx = document.getElementById(canvasId).getContext('2d');
-  return new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: datasets.map((ds, i) => ({
-        ...ds,
-        backgroundColor: CHART_COLORS[i] + 'cc',
-        borderColor: CHART_COLORS[i],
-        borderWidth: 1,
-        borderRadius: 4,
-      }))
+function pieChart(elId, labels, data) {
+  const chart = _initChart(elId);
+  chart.setOption({
+    color: CHART_COLORS,
+    tooltip: {
+      trigger: 'item',
+      formatter: p => `${p.name}: ${formatAmount(p.value)} (${p.percent}%)`,
     },
-    options: {
-      responsive: true,
-      scales: {
-        x: { grid: { color: '#1f2937' } },
-        y: { grid: { color: '#1f2937' }, ticks: { callback: v => formatAmount(v) } }
-      },
-      plugins: { legend: { position: 'top' } }
-    }
+    legend: {
+      orient: 'vertical', right: 0, top: 'center', type: 'scroll',
+      textStyle: { color: '#9ca3af' },
+    },
+    series: [{
+      type: 'pie',
+      radius: ['0%', '70%'],
+      center: ['40%', '50%'],
+      data: labels.map((label, i) => ({ name: label, value: data[i] })),
+      label: { color: '#9ca3af' },
+      itemStyle: { borderColor: '#111827', borderWidth: 1 },
+    }],
   });
+  return chart;
 }
 
-function lineChart(canvasId, labels, datasets) {
-  const ctx = document.getElementById(canvasId).getContext('2d');
-  return new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: datasets.map((ds, i) => ({
-        ...ds,
-        borderColor: CHART_COLORS[i],
-        backgroundColor: CHART_COLORS[i] + '22',
-        fill: ds.fill !== undefined ? ds.fill : true,
-        tension: 0.3,
-        pointRadius: 4,
-      }))
+function barChart(elId, labels, datasets) {
+  const chart = _initChart(elId);
+  chart.setOption({
+    color: CHART_COLORS,
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: { top: 0, textStyle: { color: '#9ca3af' } },
+    grid: { left: 55, right: 20, top: 40, bottom: 30 },
+    xAxis: { type: 'category', data: labels, axisLine: AXIS_LINE, axisLabel: AXIS_LABEL },
+    yAxis: {
+      type: 'value', splitLine: SPLIT_LINE,
+      axisLabel: { color: '#9ca3af', formatter: v => formatAmount(v) },
     },
-    options: {
-      responsive: true,
-      scales: {
-        x: { grid: { color: '#1f2937' } },
-        y: { grid: { color: '#1f2937' }, ticks: { callback: v => formatAmount(v) } }
-      },
-      plugins: { legend: { position: 'top' } }
-    }
+    series: datasets.map(ds => ({
+      name: ds.label,
+      type: 'bar',
+      data: ds.data,
+      barMaxWidth: 28,
+      itemStyle: { borderRadius: [4, 4, 0, 0] },
+    })),
   });
+  return chart;
+}
+
+function lineChart(elId, labels, datasets) {
+  const chart = _initChart(elId);
+  chart.setOption({
+    color: CHART_COLORS,
+    tooltip: { trigger: 'axis' },
+    legend: { top: 0, textStyle: { color: '#9ca3af' } },
+    grid: { left: 55, right: 20, top: 40, bottom: 30 },
+    xAxis: { type: 'category', data: labels, axisLine: AXIS_LINE, axisLabel: AXIS_LABEL },
+    yAxis: {
+      type: 'value', splitLine: SPLIT_LINE,
+      axisLabel: { color: '#9ca3af', formatter: v => formatAmount(v) },
+    },
+    series: datasets.map(ds => ({
+      name: ds.label,
+      type: 'line',
+      data: ds.data,
+      smooth: 0.3,
+      symbolSize: 6,
+      lineStyle: { width: 2 },
+      areaStyle: ds.fill === false ? undefined : { opacity: 0.13 },
+    })),
+  });
+  return chart;
 }
 
 function quickRange(range) {

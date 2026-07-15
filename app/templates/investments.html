@@ -42,7 +42,7 @@
   <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
     <div class="text-sm font-medium text-gray-400 mb-3">Allocation</div>
     {% if pie_labels %}
-    <canvas id="allocPie" height="220"></canvas>
+    <div id="allocPie" style="height: 320px"></div>
     {% else %}
     <p class="text-gray-600 text-sm">No investment data found.</p>
     {% endif %}
@@ -83,7 +83,7 @@
 {% if chart_labels %}
 <div class="bg-gray-900 rounded-lg p-4 border border-gray-800 mb-6">
   <div class="text-sm font-medium text-gray-400 mb-3">Total Invested (All Time)</div>
-  <canvas id="historyChart" height="80"></canvas>
+  <div id="historyChart" style="height: 300px"></div>
 </div>
 {% endif %}
 
