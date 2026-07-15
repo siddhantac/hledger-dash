@@ -4,6 +4,7 @@ import logging
 import os
 import subprocess
 from datetime import date
+from functools import lru_cache
 
 from app.services.query import Measure, Query, by_account, by_period, pivot
 
@@ -17,13 +18,22 @@ def _journal_file() -> str:
     return path
 
 
-def run_hledger(*args: str) -> str:
-    cmd = ["hledger", "-f", _journal_file(), *args]
+@lru_cache(maxsize=256)
+def _run_cached(argv: tuple[str, ...], mtime: float) -> str:
+    # mtime is part of the cache key only, to invalidate on journal changes.
+    cmd = ["hledger", "-f", _journal_file(), *argv]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         logger.error("Command failed: %s\nstderr: %s", " ".join(cmd), result.stderr.strip())
         raise RuntimeError(f"hledger error: {result.stderr.strip()}")
     return result.stdout
+
+
+def run_hledger(*args: str) -> str:
+    # Keying on the journal's mtime means the cache self-invalidates the
+    # instant journal-sync pulls a new commit — no TTL, no manual busting.
+    mtime = os.path.getmtime(_journal_file())
+    return _run_cached(args, mtime)
 
 
 def _next_month(ym: str) -> str:
