@@ -22,7 +22,7 @@ App available at http://localhost:8000.
 docker restart hledger-dash-hledger-dash-1
 
 # 2. Check HTTP status of all routes (all must be 200)
-for path in / /spending /income /networth /investments; do
+for path in / /spending /income /networth /investments /annual-review /transactions /accounts; do
   code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000$path)
   echo "$code  $path"
 done
@@ -50,7 +50,10 @@ app/
 │   ├── spending.py      # GET /spending
 │   ├── income.py        # GET /income
 │   ├── networth.py      # GET /networth
-│   └── investments.py   # GET /investments
+│   ├── investments.py   # GET /investments
+│   ├── annual_review.py # GET /annual-review
+│   ├── transactions.py  # GET /transactions
+│   └── accounts.py      # GET /accounts (per-account register, bank-statement view)
 ├── services/
 │   └── hledger.py       # All hledger CLI calls via subprocess; parse CSV output
 ├── static/
@@ -73,10 +76,16 @@ Key functions in `app/services/hledger.py`:
 - `get_expense_category_history` — monthly spend per category (all time)
 - `get_net_worth_history / get_net_worth_snapshot` — net worth over time and as-of snapshot
 - `get_investment_breakdown / get_monthly_investment_total` — investment sub-account data
+- `get_asset_breakdown / get_liability_breakdown` — depth-2 balance as-of a month
+- `get_transactions` — flat list of transactions in a date range, most-recent first
+- `get_account_list` — depth-2 asset/liability account names, split into `{"assets": [...], "liabilities": [...]}`
+- `get_account_register(account, date_from, date_to)` — bank-statement view (date, description, amount, running balance) for one account, most-recent first
 
 ## Date filtering
 
-All routes (except Net Worth and Investments) accept `?date_from=YYYY-MM&date_to=YYYY-MM` GET params. Default is YTD. The header in `base.html` renders the date inputs and quick-range buttons (YTD, Last Month, Last Year, All Time). Pass `first_month` from each router for the All Time button.
+All routes (except Net Worth and Investments) accept `?date_from=YYYY-MM&date_to=YYYY-MM` GET params. Default is YTD, except **Accounts** and **Transactions**, which default to Last Month. The header in `base.html` renders the date inputs and quick-range buttons (YTD, Last Month, Last Year, All Time). Pass `first_month` from each router for the All Time button.
+
+The **Accounts** page also takes `?account=<name>` to pick which account's register to show (defaults to the first asset account); account pills are rendered from `get_account_list()`.
 
 ## Adding a new page
 
@@ -96,3 +105,7 @@ All routes (except Net Worth and Investments) accept `?date_from=YYYY-MM&date_to
 ## hledger version
 
 Pinned via `ARG HLEDGER_VERSION=1.40` in the Dockerfile. Update this arg to upgrade.
+
+## Keeping this file updated
+
+**Always update CLAUDE.md in the same change** whenever you add/remove a page, router, or `hledger.py` function, or change shared conventions (date filtering, self-test routes, directory layout). Treat a stale CLAUDE.md as a bug: check it against the actual routers/services before finishing any task that touches architecture.

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Accounts — hledger-dash{% endblock %}
+{% block heading %}Accounts{% endblock %}
+
+{% block content %}
+
+{# Account selector #}
+<div class="mb-5 space-y-2">
+  {% if account_list.assets %}
+  <div class="flex items-center gap-2 flex-wrap">
+    <span class="text-xs text-gray-600 w-20 shrink-0">Assets</span>
+    {% for acct in account_list.assets %}
+    <a href="/accounts?account={{ acct }}&date_from={{ date_from }}&date_to={{ date_to }}"
+       class="px-3 py-1 rounded-full text-xs font-medium
+              {% if acct == selected %}bg-indigo-600 text-white{% else %}bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white{% endif %}">
+      {{ acct.split(':')[1] }}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if account_list.liabilities %}
+  <div class="flex items-center gap-2 flex-wrap">
+    <span class="text-xs text-gray-600 w-20 shrink-0">Liabilities</span>
+    {% for acct in account_list.liabilities %}
+    <a href="/accounts?account={{ acct }}&date_from={{ date_from }}&date_to={{ date_to }}"
+       class="px-3 py-1 rounded-full text-xs font-medium
+              {% if acct == selected %}bg-indigo-600 text-white{% else %}bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white{% endif %}">
+      {{ acct.split(':')[1] }}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="mb-4">
+  <span class="text-sm text-gray-500">
+    {{ txn_count }} posting{{ 's' if txn_count != 1 }} &mdash; {{ date_from }} → {{ date_to }}
+  </span>
+</div>
+
+{% if register %}
+<div class="bg-gray-900 rounded-lg border border-gray-800 overflow-auto">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="text-xs text-gray-500 border-b border-gray-800">
+        <th class="text-left px-4 py-2.5 font-medium w-28">Date</th>
+        <th class="text-left px-4 py-2.5 font-medium">Description</th>
+        <th class="text-right px-4 py-2.5 font-medium">Amount</th>
+        <th class="text-right px-4 py-2.5 font-medium">Balance</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in register %}
+      <tr class="border-b border-gray-800 hover:bg-gray-800/40">
+        <td class="px-4 py-2 text-gray-500 font-mono text-xs whitespace-nowrap">{{ row.date }}</td>
+        <td class="px-4 py-2 text-gray-300 max-w-xs truncate">{{ row.description }}</td>
+        <td class="px-4 py-2 text-right font-mono text-xs whitespace-nowrap
+                   {% if row.amount_val >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">
+          {{ row.amount }}
+        </td>
+        <td class="px-4 py-2 text-right font-mono text-xs text-gray-400 whitespace-nowrap">
+          {{ row.balance }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="bg-gray-900 rounded-lg border border-gray-800 p-8 text-center text-gray-600 text-sm">
+  No transactions found for this period.
+</div>
+{% endif %}
+
+{% endblock %}

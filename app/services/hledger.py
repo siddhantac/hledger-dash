@@ -428,6 +428,48 @@ def get_transactions(date_from: str, date_to: str) -> list[dict]:
     return result
 
 
+# ── Accounts ──────────────────────────────────────────────────────────────
+
+def get_account_list() -> dict[str, list[str]]:
+    """Depth-2 asset and liability account names: {"assets": [...], "liabilities": [...]}."""
+    output = run_hledger("accounts", "--depth", "2", "assets", "liabilities")
+    result: dict[str, list[str]] = {"assets": [], "liabilities": []}
+    for line in output.splitlines():
+        line = line.strip()
+        if line.count(":") == 1:
+            if line.startswith("assets:"):
+                result["assets"].append(line)
+            elif line.startswith("liabilities:"):
+                result["liabilities"].append(line)
+    return result
+
+
+def get_account_register(account: str, date_from: str, date_to: str) -> list[dict]:
+    """Bank-statement view for one account, most-recent first.
+    Returns [{date, description, amount_val, amount, balance}].
+    """
+    output = run_hledger(
+        "register", account,
+        "--output-format", "csv",
+        "--period", _period_arg(date_from, date_to),
+    )
+    rows = _parse_csv(output)
+    result = []
+    for row in rows:
+        amt_str = row.get("amount", "0").strip()
+        bal_str = row.get("total", "0").strip()
+        amt_val = _amount_to_float(amt_str)
+        result.append({
+            "date":        row.get("date", "").strip(),
+            "description": row.get("description", "").strip(),
+            "amount_val":  amt_val,
+            "amount":      amt_str,
+            "balance":     bal_str,
+        })
+    result.reverse()
+    return result
+
+
 # ── Investments ────────────────────────────────────────────────────────────
 
 def get_investment_breakdown(as_of_month: str) -> list[dict]:
