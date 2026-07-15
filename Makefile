@@ -11,7 +11,7 @@ dev:
 # only way to develop against the real journal, which lives only in the
 # journal-sync volume.
 dev-native:
-	HLEDGER_FILE=testdata/synthetic.journal uv run uvicorn app.main:app --reload
+	HLEDGER_FILE=$$LEDGER_FILE uv run uvicorn app.main:app --reload
 
 prod:
 	docker compose up --build
