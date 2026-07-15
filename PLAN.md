@@ -206,3 +206,6 @@ a single test.
       automated screenshot pass against the native dev server for all 7 chart-bearing pages instead of
       a manual check; zero console errors, all charts confirmed correct visually.
 - [ ] **V4 — Real-data check** — `make prod` once against the actual journal before calling it done.
+      **Deferred to the user:** needs colima/Docker started plus SSH access to the private journal
+      repo — kept out of this session by choice. Run `make prod` and click through the dashboard
+      against real data before merging this branch.
