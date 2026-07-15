@@ -88,6 +88,67 @@ function lineChart(elId, labels, datasets) {
   return chart;
 }
 
+function sankeyChart(elId, nodes, links) {
+  const chart = _initChart(elId);
+  chart.setOption({
+    color: CHART_COLORS,
+    tooltip: {
+      trigger: 'item',
+      formatter: p => p.dataType === 'edge'
+        ? `${p.data.source} → ${p.data.target}: ${formatAmount(p.data.value)}`
+        : `${p.name}: ${formatAmount(p.value)}`,
+    },
+    series: [{
+      type: 'sankey',
+      data: nodes,
+      links: links,
+      emphasis: { focus: 'adjacency' },
+      lineStyle: { color: 'gradient', curveness: 0.5, opacity: 0.4 },
+      label: { color: '#e5e7eb' },
+      itemStyle: { borderColor: '#111827' },
+      nodeAlign: 'justify',
+    }],
+  });
+  return chart;
+}
+
+function budgetChart(elId, rows) {
+  const chart = _initChart(elId);
+  const labels = rows.map(r => r.account);
+  const pct = rows.map(r => r.pct === null ? 0 : Math.round(r.pct * 10) / 10);
+  const maxPct = Math.max(120, ...pct);
+  chart.setOption({
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: params => {
+        const r = rows[params[0].dataIndex];
+        const pctLabel = r.pct === null ? 'no budget' : r.pct.toFixed(1) + '%';
+        return `${r.account}: ${formatAmount(r.actual)} / ${formatAmount(r.budget)} (${pctLabel})`;
+      },
+    },
+    grid: { left: 90, right: 40, top: 20, bottom: 30 },
+    xAxis: {
+      type: 'value', max: maxPct, splitLine: SPLIT_LINE,
+      axisLabel: { color: '#9ca3af', formatter: v => v + '%' },
+    },
+    yAxis: { type: 'category', data: labels, axisLine: AXIS_LINE, axisLabel: AXIS_LABEL },
+    series: [{
+      type: 'bar',
+      data: pct.map(p => ({ value: p, itemStyle: { color: p > 100 ? '#f43f5e' : '#10b981' } })),
+      barMaxWidth: 20,
+      markLine: {
+        symbol: 'none',
+        silent: true,
+        lineStyle: { color: '#facc15', type: 'dashed' },
+        label: { formatter: '100%', color: '#facc15' },
+        data: [{ xAxis: 100 }],
+      },
+    }],
+  });
+  return chart;
+}
+
 function quickRange(range) {
   const form = document.querySelector('form[data-first-month]');
   if (!form) return;

@@ -28,3 +28,14 @@ def test_health():
     resp = client.get("/health")
     assert resp.status_code == 200
     assert resp.json() == {"status": "ok"}
+
+
+@pytest.mark.parametrize("path", ["/", "/annual-review"])
+def test_sankey_panel_renders_with_data(path):
+    resp = client.get(path)
+    assert "sankeyChart(" in resp.text
+
+
+def test_budget_panel_renders_with_data():
+    resp = client.get("/spending")
+    assert "budgetChart(" in resp.text

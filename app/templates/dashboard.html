@@ -75,6 +75,14 @@
   </div>
 </div>
 
+{% if sankey_data.links %}
+<!-- Money flow sankey -->
+<div class="bg-gray-900 rounded-lg p-4 border border-gray-800 mb-4">
+  <div class="text-sm font-medium text-gray-400 mb-3">Money Flow — {{ date_from }} → {{ date_to }}</div>
+  <div id="sankeyChart" style="height: 380px"></div>
+</div>
+{% endif %}
+
 <!-- Income vs Expenses bar chart -->
 <div class="bg-gray-900 rounded-lg p-4 border border-gray-800 mb-4">
   <div class="text-sm font-medium text-gray-400 mb-3">Income vs Expenses — Last 12 Months</div>
@@ -91,6 +99,9 @@
 
 {% block scripts %}
 <script>
+  {% if sankey_data.links %}
+  sankeyChart('sankeyChart', {{ sankey_data.nodes | tojson }}, {{ sankey_data.links | tojson }});
+  {% endif %}
   barChart('incExpChart', {{ chart_labels | tojson }}, [
     { label: 'Income',   data: {{ monthly_income | tojson }} },
     { label: 'Expenses', data: {{ monthly_expenses | tojson }} },

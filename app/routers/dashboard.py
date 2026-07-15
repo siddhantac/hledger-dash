@@ -42,6 +42,7 @@ async def dashboard(
     monthly_income: list[float] = []
     monthly_expenses: list[float] = []
     savings_rate_data: list[float] = []
+    sankey_data: dict = {"nodes": [], "links": []}
 
     try:
         with ThreadPoolExecutor(max_workers=8) as pool:
@@ -53,6 +54,7 @@ async def dashboard(
             f_inc_hist   = pool.submit(hl.get_monthly_income_totals, last12_from, current_month)
             f_exp_hist   = pool.submit(hl.get_monthly_expense_totals, last12_from, current_month)
             f_years      = pool.submit(hl.available_years)
+            f_sankey     = pool.submit(hl.get_sankey_data, date_from, date_to)
 
             period_summary      = f_period.result()
             last_month_summary  = f_lastmonth.result()
@@ -62,6 +64,7 @@ async def dashboard(
             inc_hist            = f_inc_hist.result()
             exp_hist            = f_exp_hist.result()
             years               = f_years.result()
+            sankey_data         = f_sankey.result()
             if years:
                 first_month = f"{years[0]}-01"
 
@@ -94,4 +97,5 @@ async def dashboard(
         "savings_rate_data":  savings_rate_data,
         "current_month":      current_month,
         "first_month":        first_month,
+        "sankey_data":        sankey_data,
     })

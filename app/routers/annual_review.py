@@ -39,9 +39,10 @@ async def annual_review(request: Request, year: Optional[int] = None):
     nw_end   = 0.0
     best_month_key: Optional[str] = None
     worst_month_key: Optional[str] = None
+    sankey_data: dict = {"nodes": [], "links": []}
 
     try:
-        with ThreadPoolExecutor(max_workers=7) as pool:
+        with ThreadPoolExecutor(max_workers=8) as pool:
             f_summary       = pool.submit(hl.get_summary, year_from, year_to)
             f_prior_summary = pool.submit(hl.get_summary, prior_from, prior_to)
             f_breakdown     = pool.submit(hl.get_expense_breakdown, year_from, year_to)
@@ -49,6 +50,7 @@ async def annual_review(request: Request, year: Optional[int] = None):
             f_monthly_exp   = pool.submit(hl.get_monthly_expense_totals, year_from, year_to)
             f_monthly_inc   = pool.submit(hl.get_monthly_income_totals, year_from, year_to)
             f_nw            = pool.submit(hl.get_net_worth_history, f"{prior_year}-12", year_to)
+            f_sankey        = pool.submit(hl.get_sankey_data, year_from, year_to)
 
             summary       = f_summary.result()
             prior_summary = f_prior_summary.result()
@@ -57,6 +59,7 @@ async def annual_review(request: Request, year: Optional[int] = None):
             monthly_exp   = f_monthly_exp.result()
             monthly_inc   = f_monthly_inc.result()
             nw_history    = f_nw.result()
+            sankey_data   = f_sankey.result()
 
         # Monthly breakdown table
         for m in hl.months_in_range(year_from, year_to):
@@ -123,4 +126,5 @@ async def annual_review(request: Request, year: Optional[int] = None):
         "decreases":        decreases,
         "nw_start":         nw_start,
         "nw_end":           nw_end,
+        "sankey_data":      sankey_data,
     })

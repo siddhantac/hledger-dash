@@ -225,4 +225,20 @@
 </div>
 {% endif %}
 
+<!-- Money flow sankey -->
+{% if sankey_data.links %}
+<div class="bg-gray-900 rounded-lg p-4 border border-gray-800 mt-6">
+  <div class="text-sm font-medium text-gray-400 mb-3">Money Flow — {{ selected_year }}</div>
+  <div id="sankeyChart" style="height: 380px"></div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  {% if sankey_data.links %}
+  sankeyChart('sankeyChart', {{ sankey_data.nodes | tojson }}, {{ sankey_data.links | tojson }});
+  {% endif %}
+</script>
 {% endblock %}

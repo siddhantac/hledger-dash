@@ -47,20 +47,23 @@ async def spending(
     trend_datasets: list[dict] = []
     heatmap_rows: list[dict] = []
     quarterly_rows: list[dict] = []
+    budget_rows: list[dict] = []
 
     try:
         years = hl.available_years()
         all_from = f"{years[0]}-01" if years else f"{today.year}-01"
         first_month = all_from
 
-        with ThreadPoolExecutor(max_workers=3) as pool:
+        with ThreadPoolExecutor(max_workers=4) as pool:
             f_breakdown = pool.submit(hl.get_expense_breakdown, date_from, date_to)
             f_yoy       = pool.submit(hl.get_expense_breakdown, yoy_from, yoy_to)
             f_history   = pool.submit(hl.get_expense_category_history, all_from, current_month)
+            f_budget    = pool.submit(hl.get_budget_breakdown, date_from, date_to)
 
             breakdown       = f_breakdown.result()
             yoy_breakdown   = f_yoy.result()
             category_history = f_history.result()
+            budget_rows     = f_budget.result()
 
         # ── Period summary ─────────────────────────────────────────────────
         total_spend = sum(r["amount"] for r in breakdown)
@@ -145,4 +148,5 @@ async def spending(
         "quarterly_rows":  quarterly_rows,
         "month_names":     MONTH_NAMES,
         "first_month":     first_month,
+        "budget_rows":     budget_rows,
     })

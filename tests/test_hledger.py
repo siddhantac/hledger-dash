@@ -90,3 +90,26 @@ def test_available_years_spans_synthetic_journal():
 
 def test_months_in_range():
     assert hl.months_in_range("2024-11", "2025-02") == ["2024-11", "2024-12", "2025-01", "2025-02"]
+
+
+def test_sankey_data_balances_income_to_outflows():
+    sankey = hl.get_sankey_data("2024-01", "2024-12")
+    node_names = {n["name"] for n in sankey["nodes"]}
+    assert {"Income", "salary", "freelance", "rent", "food", "Investments", "Savings"} <= node_names
+
+    income_in = sum(link["value"] for link in sankey["links"] if link["target"] == "Income")
+    income_out = sum(link["value"] for link in sankey["links"] if link["source"] == "Income")
+    # Sankey conservation: everything flowing into the Income hub must flow back out
+    # (expenses + investments + savings), or the diagram would visibly not balance.
+    assert income_in == pytest.approx(income_out)
+    assert income_in == pytest.approx(64200.00)
+
+
+def test_budget_breakdown_flags_overspent_category():
+    rows = hl.get_budget_breakdown("2024-01", "2024-12")
+    by_account = {r["account"]: r for r in rows}
+    # Hand-verified: entertainment actual 970 vs budget 960 -> over 100%.
+    assert by_account["entertainment"]["pct"] == pytest.approx(101.04166666666667)
+    assert by_account["rent"]["pct"] == pytest.approx(100.0)
+    # Sorted with the most-over-budget category first.
+    assert rows[0]["account"] == "entertainment"

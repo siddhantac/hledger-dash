@@ -455,3 +455,100 @@ def get_liability_breakdown(as_of_month: str) -> list[dict]:
             results.append({"account": _short_name(account), "full_account": account, "amount": amount})
     results.sort(key=lambda x: x["amount"], reverse=True)
     return results
+
+
+# ── Sankey ─────────────────────────────────────────────────────────────────
+
+def get_sankey_data(date_from: str, date_to: str) -> dict:
+    """
+    Money flow for a date range: income sources -> "Income" hub -> expense
+    categories / investments / savings. Built on the same FLOW queries as
+    get_income_breakdown/get_expense_breakdown, so it agrees with those
+    numbers by construction.
+    Returns {"nodes": [{"name": str}], "links": [{"source", "target", "value"}]}.
+    """
+    income_rows = _run_query(Query(accounts="income", measure=Measure.FLOW, date_from=date_from, date_to=date_to, depth=2))
+    expense_rows = _run_query(Query(accounts="expenses", measure=Measure.FLOW, date_from=date_from, date_to=date_to, depth=2))
+    invest_rows = _run_query(Query(accounts="assets:investment", measure=Measure.FLOW, date_from=date_from, date_to=date_to))
+
+    income_by_account = by_account(income_rows, Measure.FLOW)
+    expense_by_account = by_account(expense_rows, Measure.FLOW)
+    # Net new money moved into investment accounts this period (a FLOW, not
+    # the STOCK balance) — positive means contributions outweighed withdrawals.
+    invested = max(sum(by_account(invest_rows, Measure.FLOW).values()), 0.0)
+
+    total_income = sum(abs(v) for v in income_by_account.values())
+    total_expenses = sum(abs(v) for v in expense_by_account.values())
+    savings = max(total_income - total_expenses - invested, 0.0)
+
+    nodes: list[dict] = [{"name": "Income"}]
+    links: list[dict] = []
+
+    for account, amount in income_by_account.items():
+        amount = abs(amount)
+        if amount <= 0:
+            continue
+        name = _short_name(account)
+        nodes.append({"name": name})
+        links.append({"source": name, "target": "Income", "value": amount})
+
+    for account, amount in expense_by_account.items():
+        amount = abs(amount)
+        if amount <= 0:
+            continue
+        name = _short_name(account)
+        nodes.append({"name": name})
+        links.append({"source": "Income", "target": name, "value": amount})
+
+    if invested > 0:
+        nodes.append({"name": "Investments"})
+        links.append({"source": "Income", "target": "Investments", "value": invested})
+
+    if savings > 0:
+        nodes.append({"name": "Savings"})
+        links.append({"source": "Income", "target": "Savings", "value": savings})
+
+    return {"nodes": nodes, "links": links}
+
+
+# ── Budget ─────────────────────────────────────────────────────────────────
+
+def get_budget_breakdown(date_from: str, date_to: str, depth: int = 2) -> list[dict]:
+    """
+    Percent of budget consumed per expense category for a date range, from
+    the periodic (~) transactions in the journal.
+
+    Uses a dedicated non-tidy parser: hledger's --budget silently ignores
+    --layout=tidy (verified against hledger 1.50.2 — see PLAN.md Phase 1.1),
+    always emitting the wide actual/budget paired-column CSV instead, so
+    this bypasses Query entirely rather than risk misparsing that shape as
+    tidy rows.
+    Returns [{account, full_account, actual, budget, pct}] sorted by pct
+    descending (categories over budget first); pct is None with no budget goal.
+    """
+    output = run_hledger(
+        "balance", "expenses", "--budget",
+        "--output-format", "csv", "--depth", str(depth),
+        "--period", _period_arg(date_from, date_to),
+    )
+    rows = _parse_csv(output)
+    results = []
+    for row in rows:
+        account = row.get("Account", "").strip()
+        if not account or account.lower().startswith("total"):
+            continue
+        value_cols = [k for k in row.keys() if k != "Account"]
+        if len(value_cols) < 2:
+            continue
+        actual = abs(_parse_single_amount(row.get(value_cols[0], "0")))
+        budget = abs(_parse_single_amount(row.get(value_cols[1], "0")))
+        pct = (actual / budget * 100) if budget > 0 else None
+        results.append({
+            "account": _short_name(account),
+            "full_account": account,
+            "actual": actual,
+            "budget": budget,
+            "pct": pct,
+        })
+    results.sort(key=lambda r: (r["pct"] is None, -(r["pct"] or 0)))
+    return results
