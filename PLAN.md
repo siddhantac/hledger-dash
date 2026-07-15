@@ -167,11 +167,15 @@ There is no journal on the host. Compose stays for prod.
 
 ## Phase 7 — Cleanup
 
-- [ ] **7.1 — Rewrite `CLAUDE.md`.** It has drifted: it documents 5 routes but 8 exist (missing
+- [x] **7.1 — Rewrite `CLAUDE.md`.** It has drifted: it documents 5 routes but 8 exist (missing
       `annual_review`, `transactions`, `accounts`), and claims `ARG HLEDGER_VERSION=1.40` pins
       hledger, which the actual Dockerfile does not do (it's a bare `apt-get install hledger`).
 - [ ] **7.2 — Archive** `projects/hledger-charts` and `projects/finance-charts-v2` with a README
       pointer to this repo.
+      **Skipped by decision:** these are separate repos with their own GitHub remotes
+      (`siddhantac/hledger-charts`, `siddhantac/hledger-report`), outside this branch/repo — asked
+      the user how to handle it (README-only vs. push vs. `gh repo archive`) and they chose to
+      handle it themselves later rather than have it done as part of this branch.
 
 ---
 
