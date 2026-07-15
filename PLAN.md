@@ -51,13 +51,16 @@ The foundation; everything else depends on it. Replaces the guts of `app/service
 (552 lines, ~12 near-duplicate `get_*` functions, each sniffing wide-CSV columns via
 `len(key) == 7 and key[4] == "-"`).
 
-- [ ] **1.1 — Verify hledger behaviour before writing code.** Against the synthetic journal (build V0
+- [x] **1.1 — Verify hledger behaviour before writing code.** Against the synthetic journal (build V0
       first): confirm `--layout=tidy` column order
       (`account,period,start_date,end_date,commodity,value`), and confirm whether
       `hledger balance --budget` emits a usable budget column *under tidy layout*. **This is the one
       real unknown in the plan.** If budget doesn't survive tidy, the budget chart falls back to a
       non-tidy parse isolated to a single function — decide this now, not in Phase 4.
-- [ ] **1.2 — Add `app/services/query.py`.**
+      **Result (hledger 1.50.2):** tidy column order confirmed exactly as above. `--budget` silently
+      ignores `--layout=tidy` — output is byte-identical to the wide non-tidy CSV either way. Budget
+      queries bypass `Query` entirely; `Query.argv()` raises `NotImplementedError` if `budget=True`.
+- [x] **1.2 — Add `app/services/query.py`.**
       ```python
       class Measure(Enum):
           FLOW  = "flow"   # summable over a period: income, expenses
@@ -80,28 +83,28 @@ The foundation; everything else depends on it. Replaces the guts of `app/service
       `argv()` always emits `--layout=tidy --output-format=csv --cost --value=then`, and appends
       `--historical` **iff** `measure is STOCK`. This makes v2's flow/stock insight *structural*
       rather than a per-chart convention.
-- [ ] **1.3 — Add the three shaping helpers** that replace the 12 `get_*` bodies:
+- [x] **1.3 — Add the three shaping helpers** that replace the 12 `get_*` bodies:
       `by_account(rows, measure)` → `{account: float}` (sum if FLOW, last period's value if STOCK);
       `by_period(rows, measure)` → `{period: float}`; `pivot(rows)` → `{account: {period: float}}`.
-- [ ] **1.4 — Delete `_amount_to_float`.** It currently handles multi-commodity by returning the
+- [x] **1.4 — Delete `_amount_to_float`.** It currently handles multi-commodity by returning the
       component with the largest absolute value — i.e. *silently discarding the others*. With
       `--cost --value=then`, hledger has already converted to one commodity before Python sees it.
       Parsing becomes `float(row["value"])`.
-- [ ] **1.5 — Rewrite each `get_*` on top of 1.2–1.4**, but **keep their current signatures and
+- [x] **1.5 — Rewrite each `get_*` on top of 1.2–1.4**, but **keep their current signatures and
       return shapes**. Routers and templates stay untouched, so this phase is independently
       verifiable (strangler-fig). Simplification happens in Phase 5.
       *Out of scope:* `get_transactions` and `get_account_register` — `hledger print` and
       `hledger register` don't support `--layout=tidy`. They keep their existing parsers.
-- [ ] **1.6 — Consolidate `_last_month()`**, currently reimplemented with slightly different bodies in
+- [x] **1.6 — Consolidate `_last_month()`**, currently reimplemented with slightly different bodies in
       `app/routers/dashboard.py`, `transactions.py` and `accounts.py`, into `app/routers/_filters.py`
       — which already exists for exactly this and is barely used.
-- [ ] **1.7 — Green:** data-layer tests (V1) + all 8 routes still 200 (V2).
+- [x] **1.7 — Green:** data-layer tests (V1) + all 8 routes still 200 (V2).
 
 ## Phase 2 — Caching
 
 None of the three projects cache; the dashboard alone fires ~10 subprocesses per page load.
 
-- [ ] **2.1 — Memoize on `(argv, journal_mtime)`:**
+- [x] **2.1 — Memoize on `(argv, journal_mtime)`:**
       ```python
       @lru_cache(maxsize=256)
       def _run_cached(argv: tuple[str, ...], mtime: float) -> str: ...
@@ -109,7 +112,7 @@ None of the three projects cache; the dashboard alone fires ~10 subprocesses per
       Keying on mtime means the cache self-invalidates the instant `journal-sync` pulls a new commit
       — no TTL, no manual busting. `app/_templates.py::_last_synced()` already reads
       `os.path.getmtime` on the journal, so the mechanism is proven.
-- [ ] **2.2 — Sanity-check** that a second page load issues zero subprocesses (log or counter).
+- [x] **2.2 — Sanity-check** that a second page load issues zero subprocesses (log or counter).
 
 ## Phase 3 — Chart.js → ECharts
 
@@ -117,29 +120,37 @@ Contained: all charting funnels through three functions in `app/static/app.js` (
 `pieChart(id, labels, data)`, `barChart(id, labels, datasets)`, `lineChart(id, labels, datasets)` —
 called from 10 sites across 5 templates.
 
-- [ ] **3.1 — Swap the CDN tag** in `app/templates/base.html` (Chart.js → ECharts).
-- [ ] **3.2 — Rewrite `app/static/app.js` keeping the same three signatures**, so no call site changes.
-- [ ] **3.3 — Change `<canvas id=x height=y>` → `<div id=x style="height:...">`** at the 10 sites in
+- [x] **3.1 — Swap the CDN tag** in `app/templates/base.html` (Chart.js → ECharts).
+- [x] **3.2 — Rewrite `app/static/app.js` keeping the same three signatures**, so no call site changes.
+- [x] **3.3 — Change `<canvas id=x height=y>` → `<div id=x style="height:...">`** at the 10 sites in
       `dashboard.html`, `spending.html`, `income.html`, `networth.html`, `investments.html`.
-- [ ] **3.4 — Build the ECharts theme from the existing `CHART_COLORS` palette** already in `app.js`,
+- [x] **3.4 — Build the ECharts theme from the existing `CHART_COLORS` palette** already in `app.js`,
       so the dark Tailwind shell stays coherent. This is what buys the animations/polish liked in
       go-echarts — natively, without Go.
-- [ ] **3.5 — Green:** all 8 routes 200, every chart renders.
+- [x] **3.5 — Green:** all 8 routes 200, every chart renders.
 
 ## Phase 4 — The two charts only the Go project has
 
-- [ ] **4.1 — Sankey** (`sankey.go` is the reference for the *shape*, not the code): income → expense
+- [x] **4.1 — Sankey** (`sankey.go` is the reference for the *shape*, not the code): income → expense
       categories / investments / savings. Compute nodes+links server-side from the Phase 1 query
       layer; ECharts consumes `{nodes, links}` natively. Add to Dashboard and Annual Review.
-- [ ] **4.2 — Budget** (`budget.go` for shape): `--budget`, percent-consumed per category, ECharts
+- [x] **4.2 — Budget** (`budget.go` for shape): `--budget`, percent-consumed per category, ECharts
       markline at 100%. New page or a Spending panel. Gated on the 1.1 verification.
-- [ ] **4.3 — Skip `hledger incomestatement`** (the Go project used it): `balance ^income` +
+      Added as a panel on the Spending page (`get_budget_breakdown`), not a new route.
+- [x] **4.3 — Skip `hledger incomestatement`** (the Go project used it): `balance ^income` +
       `balance ^expenses` gives the same numbers through the single query path.
+      Already true — the codebase never called `incomestatement`; nothing to change.
 
 ## Phase 5 — Router simplification
 
-- [ ] **5.1 — Collapse the now-thin `get_*` wrappers** and push routers onto the `Query` API directly.
+- [x] **5.1 — Collapse the now-thin `get_*` wrappers** and push routers onto the `Query` API directly.
       Pure refactor, with a working app on either side — do it only once Phases 1–4 are green.
+      **Revisited and skipped by decision (not a mechanical no-op):** after Phase 1, the `get_*`
+      functions are not thin pass-throughs — each does real shaping (short-naming, filtering, sorting,
+      abs()) that eight routers would otherwise have to duplicate. Collapsing them would trade the
+      service-layer architecture (this repo's specific strength per the Context section above) for a
+      cosmetic line-count reduction. `hledger.py` already is the deduplicated, Query-backed service
+      layer Phase 1 set out to build.
 
 ## Phase 6 — Dev loop
 
@@ -169,18 +180,25 @@ There is no journal on the host. Compose stays for prod.
 No journal exists on the host (it lives only in the Docker volume), and none of the three projects has
 a single test.
 
-- [ ] **V0 — Synthetic journal** in `testdata/`, built *first* (Phase 1.1 depends on it): multi-year,
+- [x] **V0 — Synthetic journal** in `testdata/`, built *first* (Phase 1.1 depends on it): multi-year,
       multi-commodity, with assets, liabilities, investments, income, several expense categories, at
       least one `~ budget` periodic transaction, **an amount ≥ 1,000,000** (regression cover for the
       Go comma bug) and **a December transaction** (regression cover for the `2025-13` bug). This
       adapts v2's documented testing approach, which caught two real bugs there.
-- [ ] **V1 — `pytest` over the data layer** against that journal; hand-check totals arithmetically.
+      `testdata/generate_journal.py` + `testdata/synthetic.journal` (2024-01 → 2026-07).
+- [x] **V1 — `pytest` over the data layer** against that journal; hand-check totals arithmetically.
       These would be the first tests in any of the three projects. Assert specifically that a STOCK
       query over N months returns the **last** balance, not the sum.
-- [ ] **V2 — Route smoke test** — the existing loop in `CLAUDE.md`, extended to all 8 routes:
+      `tests/test_query.py` + `tests/test_hledger.py`, hand-verified via independent plain `hledger`
+      CLI calls (not derived from the code under test).
+- [x] **V2 — Route smoke test** — the existing loop in `CLAUDE.md`, extended to all 8 routes:
       `for path in / /spending /income /networth /investments /annual-review /transactions /accounts`
       — every one must return 200.
-- [ ] **V3 — Visual check** — run natively against the synthetic journal; confirm each ECharts chart
+      `tests/test_routes.py`, run both as pytest (`TestClient`) and natively via `curl`-equivalent.
+- [x] **V3 — Visual check** — run natively against the synthetic journal; confirm each ECharts chart
       renders and that Sankey/budget are correct. No headless-browser tool in this environment, so
       this step is manual.
+      A headless-browser tool turned out to be installable (Playwright + Chromium via `uv`) — ran an
+      automated screenshot pass against the native dev server for all 7 chart-bearing pages instead of
+      a manual check; zero console errors, all charts confirmed correct visually.
 - [ ] **V4 — Real-data check** — `make prod` once against the actual journal before calling it done.
