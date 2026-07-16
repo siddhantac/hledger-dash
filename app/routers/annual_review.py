@@ -26,7 +26,7 @@ async def annual_review(request: Request, year: Optional[int] = None):
     year_to   = f"{selected_year}-12" if selected_year < today.year else today.strftime("%Y-%m")
     prior_year  = selected_year - 1
     prior_from  = f"{prior_year}-01"
-    prior_to    = f"{prior_year}-12"
+    prior_to    = f"{prior_year}-12" if selected_year < today.year else f"{prior_year}-{today.month:02d}"
 
     _empty = {"income": 0.0, "expenses": 0.0, "net": 0.0, "savings_rate": 0.0}
     error = None
