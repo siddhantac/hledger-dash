@@ -7,7 +7,6 @@ services:
       - journals:/journals:ro
     environment:
       - HLEDGER_FILE=/journals/${JOURNAL_FILE:-main.journal}
-      - APP_VERSION=${APP_VERSION:-unknown}
     restart: unless-stopped
     depends_on:
       - journal-sync

@@ -158,15 +158,19 @@ Not pinned. The Dockerfile installs whatever `apt-get install hledger` resolves 
 ## App version display
 
 The sidebar footer (`base.html`, next to "Synced ... ago") shows the running app version via the
-`version()` template global in `app/_templates.py`. Resolution order: the `APP_VERSION` env var if
-set, else `git describe --tags --always --dirty` run against the working directory, else
-`"unknown"`. Result is memoized for the life of the process.
+`version()` template global in `app/_templates.py`. Resolution order: the `APP_VERSION` env var
+(manual override, unset by default) → a baked-in `VERSION` file → `git describe --tags --always
+--dirty` run against the working directory → `"unknown"`. Result is memoized for the life of the
+process.
 
-`git describe` needs a `.git` dir and the `git` binary, neither of which the production image has
-(the Dockerfile only `COPY`s `app/`), so `make dev`/`make prod` compute `APP_VERSION` once via
-`git describe` in the Makefile and pass it through `docker-compose.yml`'s `environment:` block.
-`make dev-native` needs no such plumbing — it runs directly in the repo, so the `git describe`
-fallback works as-is.
+The `VERSION` file is produced by the Dockerfile's first build stage (`AS version`), which has its
+own `git`-installed, `.git`-copied context so the final image needs neither — it just gets `/app/VERSION`
+copied in. This means any `docker build`/`docker compose build` picks up the current commit's
+version automatically, from any Makefile or deploy tooling, with zero compose/env plumbing —
+including on a homelab-style setup where the compose file lives outside this repo and points its
+`build.context` at a `git pull`'d checkout. `make dev-native` has no `VERSION` file (nothing builds
+one outside Docker), so it falls through to the `git describe` subprocess, which works as-is since
+it runs directly in the repo.
 
 ## Keeping this file updated
 

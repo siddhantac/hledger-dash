@@ -2,10 +2,15 @@ import functools
 import os
 import subprocess
 import time
+from pathlib import Path
 
 from fastapi.templating import Jinja2Templates
 
 templates = Jinja2Templates(directory="app/templates")
+
+# app/_templates.py -> app/ -> project root (matches Docker's WORKDIR /app, where
+# the VERSION file baked in by the Dockerfile's `version` build stage also lands).
+_VERSION_FILE = Path(__file__).resolve().parent.parent / "VERSION"
 
 
 def _fmt(value) -> str:
@@ -45,6 +50,12 @@ def _version() -> str:
     env_version = os.environ.get("APP_VERSION")
     if env_version:
         return env_version
+    try:
+        file_version = _VERSION_FILE.read_text().strip()
+        if file_version:
+            return file_version
+    except OSError:
+        pass
     try:
         result = subprocess.run(
             ["git", "describe", "--tags", "--always", "--dirty"],
