@@ -59,7 +59,7 @@ Single Python service: **FastAPI** backend with **Jinja2** server-rendered templ
 ```
 app/
 ├── main.py              # App entry point, router registration, static files
-├── _templates.py        # Shared Jinja2Templates instance with fmt/fmt_pct filters
+├── _templates.py        # Shared Jinja2Templates instance with fmt/fmt_pct filters, last_synced()/version() globals
 ├── routers/
 │   ├── _filters.py      # last_month()/last_12_from() shared by several routers
 │   ├── dashboard.py     # GET /
@@ -154,6 +154,19 @@ All charts are ECharts (`echarts.init()` against a sized `<div>`, not `<canvas>`
 ## hledger version
 
 Not pinned. The Dockerfile installs whatever `apt-get install hledger` resolves to at build time. Native dev uses whatever `hledger` is on `$PATH` (developed against 1.50.2).
+
+## App version display
+
+The sidebar footer (`base.html`, next to "Synced ... ago") shows the running app version via the
+`version()` template global in `app/_templates.py`. Resolution order: the `APP_VERSION` env var if
+set, else `git describe --tags --always --dirty` run against the working directory, else
+`"unknown"`. Result is memoized for the life of the process.
+
+`git describe` needs a `.git` dir and the `git` binary, neither of which the production image has
+(the Dockerfile only `COPY`s `app/`), so `make dev`/`make prod` compute `APP_VERSION` once via
+`git describe` in the Makefile and pass it through `docker-compose.yml`'s `environment:` block.
+`make dev-native` needs no such plumbing — it runs directly in the repo, so the `git describe`
+fallback works as-is.
 
 ## Keeping this file updated
 

@@ -1,4 +1,6 @@
+import functools
 import os
+import subprocess
 import time
 
 from fastapi.templating import Jinja2Templates
@@ -38,6 +40,26 @@ def _last_synced() -> str:
         return ""
 
 
+@functools.lru_cache(maxsize=1)
+def _version() -> str:
+    env_version = os.environ.get("APP_VERSION")
+    if env_version:
+        return env_version
+    try:
+        result = subprocess.run(
+            ["git", "describe", "--tags", "--always", "--dirty"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return "unknown"
+
+
 templates.env.filters["fmt"] = _fmt
 templates.env.filters["fmt_pct"] = _fmt_pct
 templates.env.globals["last_synced"] = _last_synced
+templates.env.globals["version"] = _version
