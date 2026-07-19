@@ -66,22 +66,33 @@ def _parse_single_amount(s: str) -> float:
 
 
 @lru_cache(maxsize=8)
-def _master_rows_cached(measure: Measure, mtime: float) -> list[dict]:
+def _master_rows_cached(measure: Measure, mtime: float, today: str) -> list[dict]:
     argv = ["balance", "--layout=tidy", "--output-format=csv", "--cost", "--value=then", "--monthly"]
     if measure is Measure.STOCK:
-        argv.append("--historical")
+        # An unrestricted balance report only ever covers periods that
+        # actually have transactions, with no carry-forward past the last
+        # one — but a STOCK balance is a running total, so a month with no
+        # new postings (e.g. this month's statements haven't been logged
+        # yet) still has a real, unchanged balance. Explicitly bounding the
+        # period through today forces hledger to forward-fill --historical
+        # balances through the current month, matching what an explicit
+        # per-call --period request used to do before the master-pull
+        # refactor. today is part of the cache key so this rolls over daily.
+        argv += ["--historical", "--period", f"..{_next_month(today)}"]
     return _parse_csv(run_hledger(*argv))
 
 
 def master_rows(measure: Measure) -> list[dict]:
     """
     One unrestricted, full-history, monthly pull per measure — cached on
-    journal mtime like run_hledger, so every get_* call for any account
-    pattern/depth/date-range shares the same 2 subprocess invocations instead
-    of paying its own ~2s hledger parse cost.
+    journal mtime (and, for STOCK, on today's date — see _master_rows_cached)
+    like run_hledger, so every get_* call for any account pattern/depth/
+    date-range shares the same 2 subprocess invocations instead of paying its
+    own ~2s hledger parse cost.
     """
     mtime = os.path.getmtime(_journal_file())
-    return _master_rows_cached(measure, mtime)
+    today = date.today().strftime("%Y-%m")
+    return _master_rows_cached(measure, mtime, today)
 
 
 def _short_name(account: str) -> str:

@@ -77,7 +77,7 @@
 
 <!-- Net worth change -->
 {% if nw_start or nw_end %}
-<div class="grid grid-cols-3 gap-4 mb-6">
+<div class="grid grid-cols-4 gap-4 mb-6">
   <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
     <div class="text-xs text-gray-500 mb-1">Net Worth — Start of Year</div>
     <div class="text-xl font-semibold text-white">{{ nw_start | fmt }}</div>
@@ -99,6 +99,18 @@
       <div class="text-xs text-gray-600 mt-1">
         {% if nw_pct >= 0 %}+{% endif %}{{ nw_pct | fmt_pct }}
       </div>
+    {% endif %}
+  </div>
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Invested — End of Year</div>
+    <div class="text-xl font-semibold text-white">{{ inv_end | fmt }}</div>
+    {% if inv_start > 0 %}
+      {% set inv_delta = inv_end - inv_start %}
+      <div class="text-xs mt-1 {% if inv_delta >= 0 %}text-emerald-500{% else %}text-rose-500{% endif %}">
+        {% if inv_delta >= 0 %}▲{% else %}▼{% endif %} {{ inv_delta | fmt }} vs {{ prior_year }}
+      </div>
+    {% else %}
+      <div class="text-xs text-gray-600 mt-1">{{ year_to }}{% if is_current_year %} (YTD){% endif %}</div>
     {% endif %}
   </div>
 </div>

@@ -37,6 +37,7 @@ async def dashboard(
     ytd_summary = dict(_empty)
     trailing_summary = dict(_empty)
     net_worth = 0.0
+    invested = 0.0
     first_month = f"{today.year}-01"
     chart_labels: list[str] = []
     monthly_income: list[float] = []
@@ -60,7 +61,9 @@ async def dashboard(
             last_month_summary  = f_lastmonth.result()
             ytd_summary         = f_ytd.result()
             trailing_summary    = f_trailing.result()
-            net_worth           = f_networth.result()["net_worth"]
+            networth_snapshot   = f_networth.result()
+            net_worth           = networth_snapshot["net_worth"]
+            invested            = networth_snapshot["invested"]
             inc_hist            = f_inc_hist.result()
             exp_hist            = f_exp_hist.result()
             years               = f_years.result()
@@ -91,6 +94,7 @@ async def dashboard(
         "ytd_summary":        ytd_summary,
         "trailing_summary":   trailing_summary,
         "net_worth":          net_worth,
+        "invested":           invested,
         "chart_labels":       chart_labels,
         "monthly_income":     monthly_income,
         "monthly_expenses":   monthly_expenses,

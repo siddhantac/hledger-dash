@@ -37,6 +37,8 @@ async def annual_review(request: Request, year: Optional[int] = None):
     decreases: list[dict] = []
     nw_start = 0.0
     nw_end   = 0.0
+    inv_start = 0.0
+    inv_end   = 0.0
     best_month_key: Optional[str] = None
     worst_month_key: Optional[str] = None
     sankey_data: dict = {"nodes": [], "links": []}
@@ -50,6 +52,7 @@ async def annual_review(request: Request, year: Optional[int] = None):
             f_monthly_exp   = pool.submit(hl.get_monthly_expense_totals, year_from, year_to)
             f_monthly_inc   = pool.submit(hl.get_monthly_income_totals, year_from, year_to)
             f_nw            = pool.submit(hl.get_net_worth_history, f"{prior_year}-12", year_to)
+            f_invested      = pool.submit(hl.get_monthly_investment_total, f"{prior_year}-12", year_to)
             f_sankey        = pool.submit(hl.get_sankey_data, year_from, year_to)
 
             summary       = f_summary.result()
@@ -59,6 +62,7 @@ async def annual_review(request: Request, year: Optional[int] = None):
             monthly_exp   = f_monthly_exp.result()
             monthly_inc   = f_monthly_inc.result()
             nw_history    = f_nw.result()
+            invested_history = f_invested.result()
             sankey_data   = f_sankey.result()
 
         # Monthly breakdown table
@@ -99,12 +103,14 @@ async def annual_review(request: Request, year: Optional[int] = None):
         increases = [m for m in movers if m["delta"] > 0][:5]
         decreases = sorted([m for m in movers if m["delta"] < 0], key=lambda x: x["delta"])[:5]
 
-        # Net worth start vs end of year
+        # Net worth and amount invested, start vs end of year
+        prior_dec = f"{prior_year}-12"
         if nw_history:
-            prior_dec   = f"{prior_year}-12"
             start_entry = next((r for r in nw_history if r["month"] == prior_dec), None)
             nw_start    = start_entry["net_worth"] if start_entry else 0.0
             nw_end      = nw_history[-1]["net_worth"]
+        inv_start = invested_history.get(prior_dec, 0.0)
+        inv_end   = invested_history.get(year_to, 0.0)
 
     except Exception as e:
         error = str(e)
@@ -126,5 +132,7 @@ async def annual_review(request: Request, year: Optional[int] = None):
         "decreases":        decreases,
         "nw_start":         nw_start,
         "nw_end":           nw_end,
+        "inv_start":        inv_start,
+        "inv_end":          inv_end,
         "sankey_data":      sankey_data,
     })

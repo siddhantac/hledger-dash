@@ -37,7 +37,7 @@
 </div>
 
 <!-- Always-on reference cards -->
-<div class="grid grid-cols-4 gap-4 mb-6">
+<div class="grid grid-cols-5 gap-4 mb-6">
   <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
     <div class="text-xs text-gray-500 mb-1">Last Month</div>
     <div class="text-xl font-semibold
@@ -71,6 +71,11 @@
   <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
     <div class="text-xs text-gray-500 mb-1">Net Worth</div>
     <div class="text-xl font-semibold text-white">{{ net_worth | fmt }}</div>
+    <div class="text-xs text-gray-600 mt-1">As of {{ current_month }}</div>
+  </div>
+  <div class="bg-gray-900 rounded-lg p-4 border border-gray-800">
+    <div class="text-xs text-gray-500 mb-1">Invested</div>
+    <div class="text-xl font-semibold text-white">{{ invested | fmt }}</div>
     <div class="text-xs text-gray-600 mt-1">As of {{ current_month }}</div>
   </div>
 </div>
