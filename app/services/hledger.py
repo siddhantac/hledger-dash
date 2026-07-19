@@ -480,12 +480,31 @@ def get_sankey_data(date_from: str, date_to: str) -> dict:
 
     nodes: list[dict] = [{"name": "Income"}]
     links: list[dict] = []
+    used_names = {"Income"}
+
+    def _unique_name(name: str) -> str:
+        # ECharts sankey identifies nodes by name, and an income category and
+        # an expense category can legitimately share a leaf name (e.g. both
+        # "transfer") since they come from separate account trees — that
+        # silently crashes ECharts' internal graph builder (a node lookup by
+        # name resolves ambiguously). Disambiguate any collision so every
+        # node name passed to the chart is unique.
+        if name not in used_names:
+            used_names.add(name)
+            return name
+        i = 2
+        candidate = f"{name} ({i})"
+        while candidate in used_names:
+            i += 1
+            candidate = f"{name} ({i})"
+        used_names.add(candidate)
+        return candidate
 
     for account, amount in income_by_account.items():
         amount = abs(amount)
         if amount <= 0:
             continue
-        name = _short_name(account)
+        name = _unique_name(_short_name(account))
         nodes.append({"name": name})
         links.append({"source": name, "target": "Income", "value": amount})
 
@@ -493,17 +512,19 @@ def get_sankey_data(date_from: str, date_to: str) -> dict:
         amount = abs(amount)
         if amount <= 0:
             continue
-        name = _short_name(account)
+        name = _unique_name(_short_name(account))
         nodes.append({"name": name})
         links.append({"source": "Income", "target": name, "value": amount})
 
     if invested > 0:
-        nodes.append({"name": "Investments"})
-        links.append({"source": "Income", "target": "Investments", "value": invested})
+        name = _unique_name("Investments")
+        nodes.append({"name": name})
+        links.append({"source": "Income", "target": name, "value": invested})
 
     if savings > 0:
-        nodes.append({"name": "Savings"})
-        links.append({"source": "Income", "target": "Savings", "value": savings})
+        name = _unique_name("Savings")
+        nodes.append({"name": name})
+        links.append({"source": "Income", "target": name, "value": savings})
 
     return {"nodes": nodes, "links": links}
 

@@ -16,9 +16,22 @@ function _initChart(elId) {
   return chart;
 }
 
+// Charts on a page are rendered by a sequence of plain calls in one inline
+// <script> block (see e.g. dashboard.html). Without this, an exception in
+// one chart's setOption (e.g. a rare ECharts internal error on unusual
+// sankey data) throws out of that call and aborts every chart after it in
+// the block, leaving them all blank — not just the one that failed.
+function _safeSetOption(chart, elId, option) {
+  try {
+    chart.setOption(option);
+  } catch (err) {
+    console.error(`Chart "${elId}" failed to render:`, err);
+  }
+}
+
 function pieChart(elId, labels, data) {
   const chart = _initChart(elId);
-  chart.setOption({
+  _safeSetOption(chart, elId, {
     color: CHART_COLORS,
     tooltip: {
       trigger: 'item',
@@ -42,7 +55,7 @@ function pieChart(elId, labels, data) {
 
 function barChart(elId, labels, datasets) {
   const chart = _initChart(elId);
-  chart.setOption({
+  _safeSetOption(chart, elId, {
     color: CHART_COLORS,
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     legend: { top: 0, textStyle: { color: '#9ca3af' } },
@@ -65,7 +78,7 @@ function barChart(elId, labels, datasets) {
 
 function lineChart(elId, labels, datasets) {
   const chart = _initChart(elId);
-  chart.setOption({
+  _safeSetOption(chart, elId, {
     color: CHART_COLORS,
     tooltip: { trigger: 'axis' },
     legend: { top: 0, textStyle: { color: '#9ca3af' } },
@@ -90,7 +103,7 @@ function lineChart(elId, labels, datasets) {
 
 function sankeyChart(elId, nodes, links) {
   const chart = _initChart(elId);
-  chart.setOption({
+  _safeSetOption(chart, elId, {
     color: CHART_COLORS,
     tooltip: {
       trigger: 'item',
@@ -117,7 +130,7 @@ function budgetChart(elId, rows) {
   const labels = rows.map(r => r.account);
   const pct = rows.map(r => r.pct === null ? 0 : Math.round(r.pct * 10) / 10);
   const maxPct = Math.max(120, ...pct);
-  chart.setOption({
+  _safeSetOption(chart, elId, {
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },

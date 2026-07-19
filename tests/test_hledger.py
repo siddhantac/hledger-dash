@@ -5,6 +5,8 @@ Expected values were hand-verified with plain `hledger balance ... -N` calls
 independent of app.services.query (see PLAN.md V1) — not derived from the
 code under test.
 """
+import os
+
 import pytest
 
 from app.services import hledger as hl
@@ -103,6 +105,49 @@ def test_sankey_data_balances_income_to_outflows():
     # (expenses + investments + savings), or the diagram would visibly not balance.
     assert income_in == pytest.approx(income_out)
     assert income_in == pytest.approx(64200.00)
+
+
+def test_sankey_data_disambiguates_colliding_node_names(tmp_path):
+    # An income category and an expense category can share a leaf name (e.g.
+    # both "transfer") since they live in separate account trees. ECharts
+    # sankey identifies nodes by name, so two nodes with the same name
+    # crashes its internal graph builder (verified directly against
+    # echarts@5.5.1: "Cannot set properties of undefined (setting
+    # 'dataIndex')" in getInitialData) — get_sankey_data must never emit
+    # duplicate node names.
+    journal = tmp_path / "collision.journal"
+    journal.write_text(
+        "2024-01-01 * Salary\n"
+        "    income:salary    -3000.00 USD\n"
+        "    assets:checking\n"
+        "\n"
+        "2024-01-05 * Refund received\n"
+        "    income:transfer   -100.00 USD\n"
+        "    assets:checking\n"
+        "\n"
+        "2024-01-10 * Sent to a friend\n"
+        "    expenses:transfer  50.00 USD\n"
+        "    assets:checking\n"
+    )
+    old_file = os.environ["HLEDGER_FILE"]
+    os.environ["HLEDGER_FILE"] = str(journal)
+    hl._run_cached.cache_clear()
+    hl._master_rows_cached.cache_clear()
+    try:
+        sankey = hl.get_sankey_data("2024-01", "2024-01")
+        names = [n["name"] for n in sankey["nodes"]]
+        assert len(names) == len(set(names)), f"duplicate node names: {names}"
+        # Both the income-side and expense-side "transfer" categories must
+        # still be present (as distinct, disambiguated nodes), not dropped.
+        assert sum(1 for n in names if n == "transfer" or n.startswith("transfer (")) == 2
+        # Every link's source/target must resolve to an actual node name.
+        for link in sankey["links"]:
+            assert link["source"] in names
+            assert link["target"] in names
+    finally:
+        os.environ["HLEDGER_FILE"] = old_file
+        hl._run_cached.cache_clear()
+        hl._master_rows_cached.cache_clear()
 
 
 def test_budget_breakdown_flags_overspent_category():
