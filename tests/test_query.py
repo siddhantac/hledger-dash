@@ -1,7 +1,5 @@
 """Unit tests for the tidy-CSV shaping helpers, no hledger process involved."""
-import pytest
-
-from app.services.query import Measure, Query, by_account, by_period, pivot
+from app.services.query import Measure, _account_matches, _truncate_depth, by_account, by_period, pivot, slice_rows
 
 FLOW_ROWS = [
     {"account": "expenses:rent", "period": "2024-01", "start_date": "2024-01-01", "end_date": "2024-01-31", "commodity": "USD", "value": "2000.00"},
@@ -51,24 +49,71 @@ def test_pivot_is_account_to_period_map():
     }
 
 
-def test_query_argv_flow_has_no_historical():
-    argv = Query(accounts="expenses", measure=Measure.FLOW, date_from="2024-01", date_to="2024-02").argv()
-    assert "--historical" not in argv
-    assert "--layout=tidy" in argv
-    assert "--cost" in argv
-    assert "--value=then" in argv
-    assert "--period" in argv
-    assert argv[argv.index("--period") + 1] == "2024-01..2024-03"
+# ── slice_rows: turns master-pull rows into the tidy shape by_account/by_period/pivot expect ──
+
+def test_truncate_depth():
+    assert _truncate_depth("assets:investment:brokerage", 1) == "assets"
+    assert _truncate_depth("assets:investment:brokerage", 2) == "assets:investment"
+    assert _truncate_depth("assets:investment:brokerage", 3) == "assets:investment:brokerage"
+    assert _truncate_depth("assets:investment:brokerage", 4) == "assets:investment:brokerage"
 
 
-def test_query_argv_stock_has_historical():
-    argv = Query(accounts="assets", measure=Measure.STOCK, date_to="2024-02").argv()
-    assert "--historical" in argv
-    assert argv[argv.index("--period") + 1] == "..2024-03"
+def test_account_matches_is_case_insensitive_unanchored_search():
+    # Verified against real hledger 1.50.2: account-pattern matching is a
+    # case-insensitive, unanchored regex search against the full account name.
+    assert _account_matches("assets", "assets:checking")
+    assert _account_matches("ASSETS", "assets:checking")
+    assert _account_matches("invest", "assets:investment:brokerage")
+    assert not _account_matches("liabilities", "assets:checking")
 
 
-def test_query_argv_budget_raises_not_implemented():
-    # Verified against hledger 1.50.2: --budget ignores --layout=tidy, so
-    # budget queries must not go through Query (PLAN.md Phase 1.1/4.2).
-    with pytest.raises(NotImplementedError):
-        Query(accounts="expenses", measure=Measure.FLOW, budget=True).argv()
+def test_slice_rows_filters_by_account_pattern():
+    rows = FLOW_ROWS + STOCK_ROWS
+    assert slice_rows(rows, accounts="expenses") == FLOW_ROWS
+    assert slice_rows(rows, accounts="assets") == STOCK_ROWS
+
+
+def test_slice_rows_filters_by_date_window():
+    result = slice_rows(FLOW_ROWS, accounts="expenses", date_from="2024-02", date_to="2024-02")
+    assert {r["account"] for r in result} == {"expenses:rent", "expenses:food"}
+    assert all(r["period"] == "2024-02" for r in result)
+
+
+def test_slice_rows_depth_truncation_sums_descendants():
+    rows = [
+        {"account": "assets:investment:brokerage", "period": "2024-01", "start_date": "2024-01-01", "end_date": "2024-01-31", "commodity": "USD", "value": "3000.00"},
+        {"account": "assets:investment:crypto", "period": "2024-01", "start_date": "2024-01-01", "end_date": "2024-01-31", "commodity": "USD", "value": "500.00"},
+    ]
+    result = slice_rows(rows, accounts="assets:investment", depth=2)
+    assert result == [
+        {"account": "assets:investment", "period": "2024-01", "start_date": "2024-01-01", "end_date": "2024-01-31", "commodity": "USD", "value": "3500.0"},
+    ]
+
+
+def test_slice_rows_drops_accounts_with_zero_activity_across_the_whole_window():
+    # hledger's own multi-period reports emit an explicit "0" row for any
+    # account with nonzero activity somewhere in the journal but not within a
+    # given sub-window, to keep the table rectangular — a real narrower
+    # hledger call scoped to just that window would never produce the
+    # account at all. slice_rows must replicate that suppression.
+    rows = [
+        {"account": "income:investment_gains", "period": "2024-01", "start_date": "2024-01-01", "end_date": "2024-01-31", "commodity": "USD", "value": "0"},
+        {"account": "income:investment_gains", "period": "2025-06", "start_date": "2025-06-01", "end_date": "2025-06-30", "commodity": "USD", "value": "-1200000.00"},
+    ]
+    # Window excludes the only nonzero month: account must be dropped entirely.
+    assert slice_rows(rows, accounts="income", date_from="2024-01", date_to="2024-12") == []
+    # Window includes it: both rows (including the zero one) must survive.
+    assert slice_rows(rows, accounts="income", date_from="2024-01", date_to="2025-12") == rows
+
+
+def test_slice_rows_keeps_trailing_zero_row_when_account_closes_out_mid_window():
+    # An account that was nonzero earlier in the window and genuinely hits
+    # zero later (e.g. fully paid off) must keep its trailing zero row, so
+    # by_account's STOCK "last period" pick reflects the true current zero
+    # rather than a stale earlier nonzero balance.
+    rows = [
+        {"account": "liabilities:creditcard", "period": "2024-01", "start_date": "2024-01-01", "end_date": "2024-01-31", "commodity": "USD", "value": "-200.00"},
+        {"account": "liabilities:creditcard", "period": "2024-02", "start_date": "2024-02-01", "end_date": "2024-02-29", "commodity": "USD", "value": "0"},
+    ]
+    result = slice_rows(rows, accounts="liabilities", date_from="2024-01", date_to="2024-02")
+    assert by_account(result, Measure.STOCK) == {"liabilities:creditcard": 0.0}

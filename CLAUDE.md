@@ -71,7 +71,7 @@ app/
 │   ├── transactions.py  # GET /transactions
 │   └── accounts.py      # GET /accounts (per-account register, bank-statement view)
 ├── services/
-│   ├── query.py          # Tidy-CSV query layer: Measure, Query, by_account/by_period/pivot
+│   ├── query.py          # Tidy-CSV query layer: Measure, slice_rows, by_account/by_period/pivot
 │   └── hledger.py         # get_* functions built on query.py; all hledger CLI calls + caching
 ├── static/
 │   └── app.js            # pieChart(), barChart(), lineChart(), sankeyChart(), budgetChart(), quickRange()
@@ -93,25 +93,27 @@ tests/
 
 All data comes from shelling out to the `hledger` binary. `HLEDGER_FILE` env var points to the journal. All routers use `concurrent.futures.ThreadPoolExecutor` to parallelise independent hledger calls. `run_hledger()` is memoized via `lru_cache` keyed on `(argv, journal_mtime)` — a second identical call issues zero subprocesses, and the cache self-invalidates the instant the journal file's mtime changes (e.g. `journal-sync` pulling a new commit).
 
-### Query layer (`app/services/query.py`)
+### Master pull + in-memory aggregation (`app/services/query.py`, `master_rows`/`slice_rows` in `hledger.py`)
 
-Almost every `hledger.py` function is built on `Query`, a typed wrapper around `hledger balance --layout=tidy --output-format=csv --cost --value=then`. Tidy layout means Python always parses the same six columns (`account,period,start_date,end_date,commodity,value`), and `--cost --value=then` means hledger has already converted every posting to one commodity before Python sees it — no hand-rolled multi-commodity parsing.
+Every hledger CLI call costs the same ~2s regardless of how narrow the query is — hledger parses and balance-validates the *entire* journal before applying any filter, there's no filter-pushdown (see `PERFORMANCE.md`). So instead of one narrow `hledger balance` call per (account pattern, depth, date range) combination, `hledger.py`'s `master_rows(measure)` fetches exactly **two** unrestricted, full-history, monthly pulls total — one FLOW, one STOCK — cached on journal mtime same as `run_hledger`. Every `get_*` function then calls `query.py`'s `slice_rows(rows, accounts, depth, date_from, date_to)` to filter/depth-truncate/date-window that in-memory dataset in Python, replacing what a narrow per-call hledger query used to do:
+- **Account filtering**: case-insensitive unanchored regex search against the full account name (`_account_matches`) — matches hledger's own account-pattern matching exactly.
+- **Depth rollup**: truncate each account to N colon-segments and sum same-period rows that collapse to the same prefix (`_truncate_depth`) — matches hledger's own `--depth` rollup exactly.
+- **Zero-activity suppression**: an account with nonzero activity somewhere in the full journal but *not* within the requested window gets dropped entirely, mirroring hledger's own per-window zero-row suppression (a real per-window hledger call would never have produced that account/period at all). An account that has even one nonzero row inside the window keeps *all* its rows in-window, including trailing zeros (e.g. a balance that was fully paid off mid-window needs its zero row so `by_account`'s STOCK "last period" pick reflects the true current zero, not a stale earlier balance).
 
-`Measure.FLOW` vs `Measure.STOCK` is structural, not a per-call convention:
-- **FLOW** (income, expenses — summable over a period): `Query.argv()` does *not* add `--historical`.
-- **STOCK** (assets, investments, net worth — point-in-time balances): `Query.argv()` *always* adds `--historical`. A stock measure can never accidentally be summed across months by a caller that forgot the flag.
-
-Three shaping helpers turn tidy rows into what routers need:
+`slice_rows` produces the same six-column tidy row shape (`account,period,start_date,end_date,commodity,value`) a narrow per-call query used to produce, so the three shaping helpers below are completely unchanged by this — they're what actually encode the FLOW/STOCK semantics:
 - `by_account(rows, measure)` → `{account: float}` — sums periods for FLOW, keeps only the **last** period's value for STOCK.
 - `by_period(rows, measure)` → `{period: float}`, summed across accounts.
 - `pivot(rows)` → `{account: {period: float}}`.
 
-**`Query` does not support `--budget`.** Verified against hledger 1.50.2: `--budget` silently ignores `--layout=tidy` and always emits the wide actual/budget paired-column CSV instead. `Query(..., budget=True).argv()` raises `NotImplementedError` rather than risk misparsing that shape as tidy rows — `get_budget_breakdown` uses its own dedicated non-tidy parser instead.
+`Measure.FLOW` vs `Measure.STOCK` is structural, not a per-call convention: the STOCK master pull always carries `--historical`, so a stock measure can never accidentally be summed across months by a caller that forgot the flag.
 
-`get_transactions` (`hledger print`) and `get_account_register` (`hledger register`) don't go through `Query` — those hledger subcommands don't support `--layout=tidy`, so they keep their own CSV parsers.
+`get_budget_breakdown` doesn't use `master_rows`/`slice_rows` — it's a dedicated non-tidy parser. Verified against hledger 1.50.2: `--budget` silently ignores `--layout=tidy` and always emits the wide actual/budget paired-column CSV instead, so this bypasses the master-pull tidy-CSV pipeline entirely rather than risk misparsing that shape as tidy rows.
+
+`get_transactions` (`hledger print`) and `get_account_register` (`hledger register`) also don't go through the master-pull pipeline — those hledger subcommands don't support `--layout=tidy`, so they keep their own CSV parsers and their own per-call caching (already cheap, 1-2 calls each).
 
 Key functions in `app/services/hledger.py`:
 - `run_hledger(*args)` — cached subprocess wrapper
+- `master_rows(measure)` — the two full-history master pulls (one per `Measure`), memoized on `(measure, journal_mtime)` on top of `run_hledger`'s own cache, so repeated `get_*` calls within a request don't even re-parse the CSV
 - `available_years()` — scans journal for all years with data
 - `months_in_range(date_from, date_to)` — list of YYYY-MM strings
 - `get_summary(date_from, date_to)` — total income, expenses, net, savings_rate

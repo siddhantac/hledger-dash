@@ -1,83 +1,28 @@
 """
 Tidy-CSV query layer over the hledger CLI.
 
-Every query emits `--layout=tidy --output-format=csv --cost --value=then`, so
-Python always parses the same six columns
-(`account,period,start_date,end_date,commodity,value`) and always receives a
-single already-converted commodity — no hand-rolled multi-commodity parsing.
+Two master pulls (one FLOW, one STOCK — see `hledger.py`'s `master_rows`)
+fetch the entire journal's `--layout=tidy --output-format=csv --cost
+--value=then` history once per journal-mtime-change. Every `get_*` function in
+`hledger.py` then calls `slice_rows()` to filter/depth-truncate/date-window
+that in-memory dataset into the same six-column tidy row shape
+(`account,period,start_date,end_date,commodity,value`) a narrow per-call
+hledger query used to produce directly, before handing off to the shaping
+helpers below. This replaces what used to be up to 17 distinct per-page
+hledger subprocess invocations with exactly 2, shared across every page and
+every date range (see PERFORMANCE.md).
 
-FLOW vs STOCK is structural, not a per-call convention: STOCK queries get
-`--historical` appended automatically, so a stock measure can never
-accidentally be summed across months by a caller that forgot the flag.
+FLOW vs STOCK is structural, not a per-call convention: the STOCK master pull
+always carries `--historical`, so a stock measure can never accidentally be
+summed across months by a caller that forgot the flag.
 """
-from dataclasses import dataclass
+import re
 from enum import Enum
 
 
 class Measure(Enum):
     FLOW = "flow"    # summable over a period: income, expenses
     STOCK = "stock"  # point-in-time: assets, investments, net worth
-
-
-def _next_month(ym: str) -> str:
-    year, month = int(ym[:4]), int(ym[5:7])
-    if month == 12:
-        return f"{year + 1}-01"
-    return f"{year}-{month + 1:02d}"
-
-
-@dataclass(frozen=True)
-class Query:
-    accounts: str                 # hledger account regex, e.g. "^expenses"
-    measure: Measure
-    date_from: str | None = None
-    date_to: str | None = None
-    depth: int | None = None
-    drop: int | None = None
-    monthly: bool = False
-    invert: bool = False
-    budget: bool = False
-
-    def argv(self) -> list[str]:
-        if self.budget:
-            # Verified against hledger 1.50.2 (PLAN.md Phase 1.1): --budget
-            # silently ignores --layout=tidy and always emits the wide
-            # actual/budget paired-column CSV instead. Budget queries use a
-            # dedicated non-tidy parser (Phase 4.2), not this class.
-            raise NotImplementedError(
-                "hledger --budget does not support --layout=tidy; "
-                "use the dedicated budget parser instead of Query"
-            )
-
-        args = [
-            "balance", self.accounts,
-            "--layout=tidy", "--output-format=csv",
-            "--cost", "--value=then",
-        ]
-        if self.measure is Measure.STOCK:
-            args.append("--historical")
-        if self.monthly:
-            args.append("--monthly")
-        if self.depth is not None:
-            args += ["--depth", str(self.depth)]
-        if self.drop is not None:
-            args += ["--drop", str(self.drop)]
-        if self.invert:
-            args.append("--invert")
-
-        period = self._period()
-        if period is not None:
-            args += ["--period", period]
-        return args
-
-    def _period(self) -> str | None:
-        if self.date_from and self.date_to:
-            return f"{self.date_from}..{_next_month(self.date_to)}"
-        if self.date_to:
-            return f"..{_next_month(self.date_to)}"
-        if self.date_from:
-            return f"{self.date_from}.."
-        return None
 
 
 def by_account(rows: list[dict], measure: Measure) -> dict[str, float]:
@@ -106,8 +51,8 @@ def by_period(rows: list[dict], measure: Measure) -> dict[str, float]:
     """
     Collapse tidy rows into {period: float}, summed across accounts.
     FLOW and STOCK are handled identically here: the flow/stock distinction
-    is already baked into each row's value by whether --historical was sent
-    to hledger (see Query.argv), so both cases just sum same-period rows.
+    is already baked into each row's value by whether the master pull used
+    --historical, so both cases just sum same-period rows.
     """
     result: dict[str, float] = {}
     for row in rows:
@@ -121,3 +66,68 @@ def pivot(rows: list[dict]) -> dict[str, dict[str, float]]:
     for row in rows:
         result.setdefault(row["account"], {})[row["period"]] = float(row["value"])
     return result
+
+
+def _truncate_depth(account: str, depth: int) -> str:
+    return ":".join(account.split(":")[:depth])
+
+
+def _account_matches(pattern: str, account: str) -> bool:
+    # hledger's own account-pattern matching is a case-insensitive, unanchored
+    # regex search against the full account name (verified against hledger
+    # 1.50.2: "ASSETS" matches "assets:checking"; "invest" mid-string matches
+    # "assets:investment:brokerage") — re.search replicates this exactly.
+    return re.search(pattern, account, re.IGNORECASE) is not None
+
+
+def slice_rows(
+    rows: list[dict],
+    accounts: str,
+    depth: int | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+) -> list[dict]:
+    """
+    Filter/truncate/date-window a master pull's rows into the same tidy shape
+    a narrow per-call hledger query would have produced, so
+    by_account/by_period/pivot can consume them unchanged.
+
+    date_from/date_to compare period strings directly ("2024-03" >= "2024-01")
+    since master rows are always --monthly, so period is always a plain
+    YYYY-MM string with no day-level range math to get wrong.
+    """
+    filtered = [
+        row for row in rows
+        if _account_matches(accounts, row["account"])
+        and (date_from is None or row["period"] >= date_from)
+        and (date_to is None or row["period"] <= date_to)
+    ]
+
+    if depth is not None:
+        grouped: dict[tuple[str, str], dict] = {}
+        for row in filtered:
+            key = (_truncate_depth(row["account"], depth), row["period"])
+            if key in grouped:
+                grouped[key]["value"] = str(float(grouped[key]["value"]) + float(row["value"]))
+            else:
+                grouped[key] = {**row, "account": key[0]}
+        filtered = list(grouped.values())
+
+    # The master pull spans the whole journal, so hledger emits an explicit
+    # "0" row for any account with nonzero activity somewhere in the journal
+    # but not within this window, to keep its own multi-period table
+    # rectangular. A real narrower hledger call scoped to just this window
+    # would never have produced that account at all. Drop accounts with zero
+    # activity across the *entire selected window* to match — but keep an
+    # account that has even one nonzero row in-window (e.g. a balance that
+    # was fully closed out mid-window still needs its trailing zero row, so
+    # by_account's STOCK "last period" pick reflects the true current zero).
+    by_acct: dict[str, list[dict]] = {}
+    for row in filtered:
+        by_acct.setdefault(row["account"], []).append(row)
+    return [
+        row
+        for acct_rows in by_acct.values()
+        if any(float(r["value"]) != 0 for r in acct_rows)
+        for row in acct_rows
+    ]

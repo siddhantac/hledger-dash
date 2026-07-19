@@ -6,7 +6,7 @@ import subprocess
 from datetime import date
 from functools import lru_cache
 
-from app.services.query import Measure, Query, by_account, by_period, pivot
+from app.services.query import Measure, by_account, by_period, pivot, slice_rows
 
 logger = logging.getLogger(__name__)
 
@@ -65,8 +65,23 @@ def _parse_single_amount(s: str) -> float:
     return 0.0
 
 
-def _run_query(q: Query) -> list[dict]:
-    return _parse_csv(run_hledger(*q.argv()))
+@lru_cache(maxsize=8)
+def _master_rows_cached(measure: Measure, mtime: float) -> list[dict]:
+    argv = ["balance", "--layout=tidy", "--output-format=csv", "--cost", "--value=then", "--monthly"]
+    if measure is Measure.STOCK:
+        argv.append("--historical")
+    return _parse_csv(run_hledger(*argv))
+
+
+def master_rows(measure: Measure) -> list[dict]:
+    """
+    One unrestricted, full-history, monthly pull per measure — cached on
+    journal mtime like run_hledger, so every get_* call for any account
+    pattern/depth/date-range shares the same 2 subprocess invocations instead
+    of paying its own ~2s hledger parse cost.
+    """
+    mtime = os.path.getmtime(_journal_file())
+    return _master_rows_cached(measure, mtime)
 
 
 def _short_name(account: str) -> str:
@@ -111,10 +126,7 @@ def get_expense_category_history(date_from: str, date_to: str, depth: int = 2) -
     Returns {short_category_name: {YYYY-MM: amount}}.
     One hledger call; caller derives heat map, quarterly rollup, and trend from this.
     """
-    rows = _run_query(Query(
-        accounts="expenses", measure=Measure.FLOW,
-        date_from=date_from, date_to=date_to, depth=depth, monthly=True,
-    ))
+    rows = slice_rows(master_rows(Measure.FLOW), accounts="expenses", depth=depth, date_from=date_from, date_to=date_to)
     by_full_account = pivot(rows)
     result: dict[str, dict[str, float]] = {}
     for account, monthly in by_full_account.items():
@@ -126,10 +138,7 @@ def get_expense_category_history(date_from: str, date_to: str, depth: int = 2) -
 
 def get_monthly_expense_totals(date_from: str, date_to: str) -> dict[str, float]:
     """Monthly expense totals: {YYYY-MM: float}."""
-    rows = _run_query(Query(
-        accounts="expenses", measure=Measure.FLOW,
-        date_from=date_from, date_to=date_to, monthly=True,
-    ))
+    rows = slice_rows(master_rows(Measure.FLOW), accounts="expenses", date_from=date_from, date_to=date_to)
     months = months_in_range(date_from, date_to)
     period_totals = by_period(rows, Measure.FLOW)
     return {m: abs(period_totals.get(m, 0.0)) for m in months}
@@ -137,10 +146,7 @@ def get_monthly_expense_totals(date_from: str, date_to: str) -> dict[str, float]
 
 def get_expense_breakdown(date_from: str, date_to: str, depth: int = 2) -> list[dict]:
     """Expense totals by category: [{account, full_account, amount}] sorted desc."""
-    rows = _run_query(Query(
-        accounts="expenses", measure=Measure.FLOW,
-        date_from=date_from, date_to=date_to, depth=depth,
-    ))
+    rows = slice_rows(master_rows(Measure.FLOW), accounts="expenses", depth=depth, date_from=date_from, date_to=date_to)
     results = []
     for account, amount in by_account(rows, Measure.FLOW).items():
         amount = abs(amount)
@@ -151,7 +157,7 @@ def get_expense_breakdown(date_from: str, date_to: str, depth: int = 2) -> list[
 
 
 def get_expense_total(date_from: str, date_to: str) -> float:
-    rows = _run_query(Query(accounts="expenses", measure=Measure.FLOW, date_from=date_from, date_to=date_to))
+    rows = slice_rows(master_rows(Measure.FLOW), accounts="expenses", date_from=date_from, date_to=date_to)
     return abs(sum(by_account(rows, Measure.FLOW).values()))
 
 
@@ -159,10 +165,7 @@ def get_expense_total(date_from: str, date_to: str) -> float:
 
 def get_monthly_income_totals(date_from: str, date_to: str) -> dict[str, float]:
     """Monthly income totals: {YYYY-MM: float}."""
-    rows = _run_query(Query(
-        accounts="income", measure=Measure.FLOW,
-        date_from=date_from, date_to=date_to, monthly=True,
-    ))
+    rows = slice_rows(master_rows(Measure.FLOW), accounts="income", date_from=date_from, date_to=date_to)
     months = months_in_range(date_from, date_to)
     period_totals = by_period(rows, Measure.FLOW)
     return {m: abs(period_totals.get(m, 0.0)) for m in months}
@@ -170,10 +173,7 @@ def get_monthly_income_totals(date_from: str, date_to: str) -> dict[str, float]:
 
 def get_income_breakdown(date_from: str, date_to: str, depth: int = 2) -> list[dict]:
     """Income totals by source: [{account, full_account, amount}] sorted desc."""
-    rows = _run_query(Query(
-        accounts="income", measure=Measure.FLOW,
-        date_from=date_from, date_to=date_to, depth=depth,
-    ))
+    rows = slice_rows(master_rows(Measure.FLOW), accounts="income", depth=depth, date_from=date_from, date_to=date_to)
     results = []
     for account, amount in by_account(rows, Measure.FLOW).items():
         amount = abs(amount)
@@ -184,7 +184,7 @@ def get_income_breakdown(date_from: str, date_to: str, depth: int = 2) -> list[d
 
 
 def get_income_total(date_from: str, date_to: str) -> float:
-    rows = _run_query(Query(accounts="income", measure=Measure.FLOW, date_from=date_from, date_to=date_to))
+    rows = slice_rows(master_rows(Measure.FLOW), accounts="income", date_from=date_from, date_to=date_to)
     return abs(sum(by_account(rows, Measure.FLOW).values()))
 
 
@@ -206,14 +206,9 @@ def get_net_worth_history(date_from: str, date_to: str) -> list[dict]:
     """
     months = months_in_range(date_from, date_to)
 
-    asset_rows = _run_query(Query(
-        accounts="assets", measure=Measure.STOCK,
-        date_from=date_from, date_to=date_to, monthly=True,
-    ))
-    liability_rows = _run_query(Query(
-        accounts="liabilities", measure=Measure.STOCK,
-        date_from=date_from, date_to=date_to, monthly=True,
-    ))
+    stock = master_rows(Measure.STOCK)
+    asset_rows = slice_rows(stock, accounts="assets", date_from=date_from, date_to=date_to)
+    liability_rows = slice_rows(stock, accounts="liabilities", date_from=date_from, date_to=date_to)
     asset_totals = by_period(asset_rows, Measure.STOCK)
     liability_totals = by_period(liability_rows, Measure.STOCK)
 
@@ -235,8 +230,10 @@ def get_net_worth_snapshot(as_of_month: str) -> dict:
     Current net worth breakdown: {liquid, invested, liabilities, net_worth}.
     Balances are as of end of as_of_month (YYYY-MM).
     """
+    stock = master_rows(Measure.STOCK)
+
     def _total(accounts: str) -> float:
-        rows = _run_query(Query(accounts=accounts, measure=Measure.STOCK, date_to=as_of_month))
+        rows = slice_rows(stock, accounts=accounts, date_to=as_of_month)
         return sum(by_account(rows, Measure.STOCK).values())
 
     total_assets = _total("assets")
@@ -263,7 +260,7 @@ def get_transactions(date_from: str, date_to: str) -> list[dict]:
     kind is 'expense' | 'income' | 'transfer'.
 
     hledger print doesn't support --layout=tidy, so this keeps its own parser
-    (out of scope for the Query rewrite — see PLAN.md Phase 1.5).
+    (out of scope for the master-pull tidy-CSV pipeline — see PLAN.md Phase 1.5).
     """
     output = run_hledger(
         "print", "--output-format", "csv",
@@ -377,7 +374,7 @@ def get_account_register(account: str, date_from: str, date_to: str) -> list[dic
     Returns [{date, description, amount_val, amount, balance}].
 
     hledger register doesn't support --layout=tidy, so this keeps its own
-    parser (out of scope for the Query rewrite — see PLAN.md Phase 1.5).
+    parser (out of scope for the master-pull tidy-CSV pipeline — see PLAN.md Phase 1.5).
     """
     output = run_hledger(
         "register", account,
@@ -405,10 +402,7 @@ def get_account_register(account: str, date_from: str, date_to: str) -> list[dic
 
 def get_investment_breakdown(as_of_month: str) -> list[dict]:
     """Current balance by assets:investment sub-account (depth 3)."""
-    rows = _run_query(Query(
-        accounts="assets:investment", measure=Measure.STOCK,
-        date_to=as_of_month, depth=3,
-    ))
+    rows = slice_rows(master_rows(Measure.STOCK), accounts="assets:investment", depth=3, date_to=as_of_month)
     results = []
     for account, amount in by_account(rows, Measure.STOCK).items():
         if account and amount > 0:
@@ -420,20 +414,14 @@ def get_investment_breakdown(as_of_month: str) -> list[dict]:
 def get_monthly_investment_total(date_from: str, date_to: str) -> dict[str, float]:
     """Monthly cumulative total of assets:investment: {YYYY-MM: float}."""
     months = months_in_range(date_from, date_to)
-    rows = _run_query(Query(
-        accounts="assets:investment", measure=Measure.STOCK,
-        date_from=date_from, date_to=date_to, monthly=True,
-    ))
+    rows = slice_rows(master_rows(Measure.STOCK), accounts="assets:investment", date_from=date_from, date_to=date_to)
     period_totals = by_period(rows, Measure.STOCK)
     return {m: period_totals.get(m, 0.0) for m in months}
 
 
 def get_asset_breakdown(as_of_month: str) -> list[dict]:
     """Depth-2 asset breakdown as of end of given month."""
-    rows = _run_query(Query(
-        accounts="assets", measure=Measure.STOCK,
-        date_to=as_of_month, depth=2,
-    ))
+    rows = slice_rows(master_rows(Measure.STOCK), accounts="assets", depth=2, date_to=as_of_month)
     results = []
     for account, amount in by_account(rows, Measure.STOCK).items():
         if account and amount > 0:
@@ -444,10 +432,7 @@ def get_asset_breakdown(as_of_month: str) -> list[dict]:
 
 def get_liability_breakdown(as_of_month: str) -> list[dict]:
     """Credit card balance breakdown as of end of given month."""
-    rows = _run_query(Query(
-        accounts="liabilities", measure=Measure.STOCK,
-        date_to=as_of_month, depth=2,
-    ))
+    rows = slice_rows(master_rows(Measure.STOCK), accounts="liabilities", depth=2, date_to=as_of_month)
     results = []
     for account, amount in by_account(rows, Measure.STOCK).items():
         amount = abs(amount)
@@ -467,9 +452,10 @@ def get_sankey_data(date_from: str, date_to: str) -> dict:
     numbers by construction.
     Returns {"nodes": [{"name": str}], "links": [{"source", "target", "value"}]}.
     """
-    income_rows = _run_query(Query(accounts="income", measure=Measure.FLOW, date_from=date_from, date_to=date_to, depth=2))
-    expense_rows = _run_query(Query(accounts="expenses", measure=Measure.FLOW, date_from=date_from, date_to=date_to, depth=2))
-    invest_rows = _run_query(Query(accounts="assets:investment", measure=Measure.FLOW, date_from=date_from, date_to=date_to))
+    flow = master_rows(Measure.FLOW)
+    income_rows = slice_rows(flow, accounts="income", depth=2, date_from=date_from, date_to=date_to)
+    expense_rows = slice_rows(flow, accounts="expenses", depth=2, date_from=date_from, date_to=date_to)
+    invest_rows = slice_rows(flow, accounts="assets:investment", date_from=date_from, date_to=date_to)
 
     income_by_account = by_account(income_rows, Measure.FLOW)
     expense_by_account = by_account(expense_rows, Measure.FLOW)
@@ -521,8 +507,8 @@ def get_budget_breakdown(date_from: str, date_to: str, depth: int = 2) -> list[d
     Uses a dedicated non-tidy parser: hledger's --budget silently ignores
     --layout=tidy (verified against hledger 1.50.2 — see PLAN.md Phase 1.1),
     always emitting the wide actual/budget paired-column CSV instead, so
-    this bypasses Query entirely rather than risk misparsing that shape as
-    tidy rows.
+    this bypasses the master-pull tidy-CSV pipeline entirely rather than risk
+    misparsing that shape as tidy rows.
     Returns [{account, full_account, actual, budget, pct}] sorted by pct
     descending (categories over budget first); pct is None with no budget goal.
     """
