@@ -6,6 +6,8 @@ from pathlib import Path
 
 from fastapi.templating import Jinja2Templates
 
+from app.services.hledger import journal_mtime
+
 templates = Jinja2Templates(directory="app/templates")
 
 # app/_templates.py -> app/ -> project root (matches Docker's WORKDIR /app, where
@@ -28,11 +30,13 @@ def _fmt_pct(value) -> str:
 
 
 def _last_synced() -> str:
-    path = os.environ.get("HLEDGER_FILE", "")
-    if not path:
+    if not os.environ.get("HLEDGER_FILE", ""):
         return ""
     try:
-        minutes = int((time.time() - os.path.getmtime(path)) / 60)
+        # Same whole-tree signal the query cache keys on (see journal_mtime's
+        # docstring) — statting only HLEDGER_FILE reports the umbrella file's
+        # clone date, not when the data underneath it last changed.
+        minutes = int((time.time() - journal_mtime()) / 60)
         if minutes < 1:
             return "just now"
         if minutes < 60:

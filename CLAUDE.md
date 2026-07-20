@@ -91,7 +91,9 @@ tests/
 
 ## Data flow
 
-All data comes from shelling out to the `hledger` binary. `HLEDGER_FILE` env var points to the journal. All routers use `concurrent.futures.ThreadPoolExecutor` to parallelise independent hledger calls. `run_hledger()` is memoized via `lru_cache` keyed on `(argv, journal_mtime)` — a second identical call issues zero subprocesses, and the cache self-invalidates the instant the journal file's mtime changes (e.g. `journal-sync` pulling a new commit).
+All data comes from shelling out to the `hledger` binary. `HLEDGER_FILE` env var points to the journal. All routers use `concurrent.futures.ThreadPoolExecutor` to parallelise independent hledger calls. `run_hledger()` is memoized via `lru_cache` keyed on `(argv, journal_mtime())` — a second identical call issues zero subprocesses, and the cache self-invalidates the instant the journal changes (e.g. `journal-sync` pulling a new commit).
+
+**`journal_mtime()` must stay whole-tree.** It returns the newest mtime across every journal-ish file (`.journal`, `.ledger`, `.hledger`, `.timeclock`, `.timedot`) under `HLEDGER_FILE`'s directory, not `HLEDGER_FILE`'s own mtime. A real journal is an umbrella that `include`s per-year files, and `git pull` only rewrites files that actually changed — so the umbrella's mtime stays frozen at clone time while the data underneath it moves every sync. Statting only the entry point pinned every cached result to the journal as it looked at container start, which shipped permanently stale charts to the always-on homelab deployment. The bug was near-invisible because the Transactions and Accounts pages put their date range in the cache key, so a newly-viewed range always missed the cache and looked fresh. `tests/test_caching.py::test_included_file_change_invalidates_cache` locks this in; `_last_synced()` in `_templates.py` uses the same signal so the sidebar can't disagree with the charts.
 
 ### Master pull + in-memory aggregation (`app/services/query.py`, `master_rows`/`slice_rows` in `hledger.py`)
 
@@ -113,6 +115,7 @@ Every hledger CLI call costs the same ~2s regardless of how narrow the query is 
 
 Key functions in `app/services/hledger.py`:
 - `run_hledger(*args)` — cached subprocess wrapper
+- `journal_mtime()` — whole-tree freshness signal used as every cache key's invalidation component (see the warning above)
 - `master_rows(measure)` — the two full-history master pulls (one per `Measure`), memoized on `(measure, journal_mtime)` on top of `run_hledger`'s own cache, so repeated `get_*` calls within a request don't even re-parse the CSV
 - `available_years()` — scans journal for all years with data
 - `months_in_range(date_from, date_to)` — list of YYYY-MM strings

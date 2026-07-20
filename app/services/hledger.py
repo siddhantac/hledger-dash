@@ -18,6 +18,47 @@ def _journal_file() -> str:
     return path
 
 
+# Extensions of files hledger may pull in via `include`. Anything else in the
+# journal directory (READMEs, scripts, .git internals) is irrelevant to the
+# reported data and must not churn the cache key.
+_JOURNAL_SUFFIXES = (".journal", ".ledger", ".hledger", ".timeclock", ".timedot")
+
+
+def journal_mtime() -> float:
+    """
+    Freshness signal for the whole journal, not just its entry point.
+
+    A real journal is typically an umbrella file that `include`s per-year or
+    per-account files, and `git pull` only rewrites the files that actually
+    changed — so the umbrella's own mtime can stay frozen at its clone time
+    forever while the data underneath it changes every sync. Statting only
+    HLEDGER_FILE therefore pins every cache entry to the journal as it looked
+    when the process started, which is invisible until someone notices the
+    charts never move (the Transactions page hides it, because its date range
+    is part of its cache key and so a new range always misses the cache).
+
+    Walking the journal's directory tree and taking the newest journal-ish
+    file's mtime catches every include without needing to parse `include`
+    directives (globs, relative paths, nesting) or pay a `hledger files`
+    subprocess just to decide whether a cached result is still good.
+    """
+    path = _journal_file()
+    root = os.path.dirname(os.path.abspath(path)) or "."
+    latest = os.path.getmtime(path)
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if not d.startswith(".")]
+        for name in filenames:
+            if not name.endswith(_JOURNAL_SUFFIXES):
+                continue
+            try:
+                latest = max(latest, os.path.getmtime(os.path.join(dirpath, name)))
+            except OSError:
+                # Raced with journal-sync mid-checkout; the next request picks
+                # up the settled state.
+                continue
+    return latest
+
+
 @lru_cache(maxsize=256)
 def _run_cached(argv: tuple[str, ...], mtime: float) -> str:
     # mtime is part of the cache key only, to invalidate on journal changes.
@@ -32,8 +73,7 @@ def _run_cached(argv: tuple[str, ...], mtime: float) -> str:
 def run_hledger(*args: str) -> str:
     # Keying on the journal's mtime means the cache self-invalidates the
     # instant journal-sync pulls a new commit — no TTL, no manual busting.
-    mtime = os.path.getmtime(_journal_file())
-    return _run_cached(args, mtime)
+    return _run_cached(args, journal_mtime())
 
 
 def _next_month(ym: str) -> str:
@@ -90,9 +130,8 @@ def master_rows(measure: Measure) -> list[dict]:
     date-range shares the same 2 subprocess invocations instead of paying its
     own ~2s hledger parse cost.
     """
-    mtime = os.path.getmtime(_journal_file())
     today = date.today().strftime("%Y-%m")
-    return _master_rows_cached(measure, mtime, today)
+    return _master_rows_cached(measure, journal_mtime(), today)
 
 
 def _short_name(account: str) -> str:
